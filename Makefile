@@ -3,6 +3,7 @@
 
 test: 9gc
 	./test.sh
+	go test -v ./*.go
 
 clean:
 	rm -f 9gc *.o *~ tmp*
