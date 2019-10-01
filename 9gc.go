@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 )
 
 // TokenKind is a type for the kind of Token
@@ -82,7 +83,7 @@ func tokenize(str string) (*Token, error) {
 			continue
 		}
 
-		if str[0] == '+' || str[0] == '-' {
+		if strings.Contains("+-*/()", str[0:1]) {
 			cur = cur.newToken(TK_RESERVED, str[:1])
 			str = next(str)
 			continue
@@ -151,38 +152,121 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	node := expr()
 
 	fmt.Printf(".intel_syntax noprefix\n")
 	fmt.Printf(".global main\n")
 	fmt.Printf("main:\n")
 
-	// The first one should be number
-	n, err := expectNumber()
+	gen(node)
+
+	fmt.Printf("  pop rax\n")
+	fmt.Printf("  ret\n")
+}
+
+// NodeKind is a type for the kind of Node
+type NodeKind int
+
+const (
+	ND_ADD = iota // +
+	ND_SUB        // -
+	ND_MUL        // *
+	ND_DIV        // /
+	ND_NUM        // number
+)
+
+// Node is a type for the abstract syntax tree
+type Node struct {
+	kind NodeKind // The kind of the node
+	lhs  *Node    // left-hand side
+	rhs  *Node    // right-hand side
+	val  int      // The value of ND_NUM
+}
+
+func newNode(kind NodeKind, lhs *Node, rhs *Node) *Node {
+	node := &Node{
+		kind: kind,
+		lhs:  lhs,
+		rhs:  rhs,
+	}
+	return node
+}
+
+func newNodeNum(val int) *Node {
+	node := &Node{
+		kind: ND_NUM,
+		val:  val,
+	}
+	return node
+}
+
+func expr() *Node {
+	node := mul()
+
+	for {
+		if consume('+') {
+			node = newNode(ND_ADD, node, mul())
+		} else if consume('-') {
+			node = newNode(ND_SUB, node, mul())
+		} else {
+			return node
+		}
+	}
+}
+
+func mul() *Node {
+	node := primary()
+
+	for {
+		if consume('*') {
+			node = newNode(ND_MUL, node, primary())
+		} else if consume('/') {
+			node = newNode(ND_DIV, node, primary())
+		} else {
+			return node
+		}
+	}
+}
+
+func primary() *Node {
+	// If the next token is '(', it shouled be '(' expr ')'
+	if consume('(') {
+		node := expr()
+		expect(')')
+		return node
+	}
+
+	// If not so, it should be a number
+	val, err := expectNumber()
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("  mov rax, %d\n", n)
+	return newNodeNum(val)
+}
 
-	for !token.atEof() {
-		if consume('+') {
-			n, err := expectNumber()
-			if err != nil {
-				panic(err)
-			}
-			fmt.Printf("  add rax, %d\n", n)
-			continue
-		}
-
-		if err := expect('-'); err != nil {
-			panic(err)
-		}
-
-		n, err := expectNumber()
-		if err != nil {
-			panic(err)
-		}
-		fmt.Printf("  sub rax, %d\n", n)
+func gen(node *Node) {
+	if node.kind == ND_NUM {
+		fmt.Printf("  push %d\n", node.val)
+		return
 	}
 
-	fmt.Printf("  ret\n")
+	gen(node.lhs)
+	gen(node.rhs)
+
+	fmt.Printf("  pop rdi\n")
+	fmt.Printf("  pop rax\n")
+
+	switch node.kind {
+	case ND_ADD:
+		fmt.Printf("  add rax, rdi\n")
+	case ND_SUB:
+		fmt.Printf("  sub rax, rdi\n")
+	case ND_MUL:
+		fmt.Printf("  imul rax, rdi\n")
+	case ND_DIV:
+		fmt.Printf("  cqo\n")
+		fmt.Printf("  idiv rdi\n")
+	}
+
+	fmt.Printf("  push rax\n")
 }
