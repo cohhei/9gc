@@ -215,17 +215,26 @@ func expr() *Node {
 }
 
 func mul() *Node {
-	node := primary()
+	node := unary()
 
 	for {
 		if consume('*') {
-			node = newNode(ND_MUL, node, primary())
+			node = newNode(ND_MUL, node, unary())
 		} else if consume('/') {
-			node = newNode(ND_DIV, node, primary())
+			node = newNode(ND_DIV, node, unary())
 		} else {
 			return node
 		}
 	}
+}
+
+func unary() *Node {
+	if consume('+') {
+		return unary()
+	} else if consume('-') {
+		return newNode(ND_SUB, newNodeNum(0), unary())
+	}
+	return primary()
 }
 
 func primary() *Node {
