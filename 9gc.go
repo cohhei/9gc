@@ -22,6 +22,7 @@ type Token struct {
 	next *Token    // The next token
 	val  int       // The value of TK_NUM
 	str  string    // Token string
+	len  int       // Token length
 }
 
 // Current token
@@ -29,8 +30,8 @@ var token *Token
 
 // consume returns true and reads the next token if it is the expected value.
 // Otherwise consume returns false.
-func consume(op byte) bool {
-	if token.kind != TK_RESERVED || token.str[0] != op {
+func consume(op string) bool {
+	if token.kind != TK_RESERVED || len(op) != token.len || !strings.HasPrefix(op, token.str) {
 		return false
 	}
 	token = token.next
@@ -38,9 +39,9 @@ func consume(op byte) bool {
 }
 
 // expect reads the next token if it is the expected value, otherwise returns the error.
-func expect(op byte) error {
-	if token.kind != TK_RESERVED || token.str[0] != op {
-		return fmt.Errorf("It is not '%s', but '%s'", string(op), string(token.str[0]))
+func expect(op string) error {
+	if token.kind != TK_RESERVED || len(op) != token.len || !strings.HasPrefix(op, token.str) {
+		return fmt.Errorf("It is not '%s', but '%s'", op, token.str)
 	}
 	token = token.next
 	return nil
@@ -61,11 +62,16 @@ func (t *Token) atEof() bool {
 	return t.kind == TK_EOF
 }
 
+func startswitch(s1, s2 string) bool {
+	return strings.HasPrefix(s1, s2)
+}
+
 // newToken creates a new token and joins it.
-func (t *Token) newToken(kind TokenKind, str string) *Token {
+func (t *Token) newToken(kind TokenKind, str string, len int) *Token {
 	tok := &Token{
 		kind: kind,
 		str:  str,
+		len:  len,
 	}
 	t.next = tok
 	return tok
@@ -83,8 +89,16 @@ func tokenize(str string) (*Token, error) {
 			continue
 		}
 
-		if strings.Contains("+-*/()", str[0:1]) {
-			cur = cur.newToken(TK_RESERVED, str[:1])
+		// Multi-letter punctuator
+		if startswitch(str, "==") || startswitch(str, "!=") ||
+			startswitch(str, "<=") || startswitch(str, ">=") {
+			cur = cur.newToken(TK_RESERVED, str[:2], 2)
+			str = str[len(cur.str):]
+			continue
+		}
+
+		if strings.Contains("+-*/()<>", str[0:1]) {
+			cur = cur.newToken(TK_RESERVED, str[:1], 1)
 			str = next(str)
 			continue
 		}
@@ -102,7 +116,7 @@ func tokenize(str string) (*Token, error) {
 		return nil, fmt.Errorf("Couldn't tokenize.")
 	}
 
-	cur.newToken(TK_EOF, str)
+	cur.newToken(TK_EOF, str, len(str))
 	return head.next, nil
 }
 
@@ -127,7 +141,7 @@ func getDigit(cur *Token, str string) (*Token, error) {
 		if err != nil {
 			return nil, err
 		}
-		t := cur.newToken(TK_NUM, str[:i])
+		t := cur.newToken(TK_NUM, str[:i], i)
 		t.val = dig
 		return t, nil
 	}
@@ -136,7 +150,7 @@ func getDigit(cur *Token, str string) (*Token, error) {
 	if err != nil {
 		return nil, err
 	}
-	t := cur.newToken(TK_NUM, str)
+	t := cur.newToken(TK_NUM, str, len(str))
 	t.val = dig
 	return t, nil
 }
@@ -172,6 +186,10 @@ const (
 	ND_SUB        // -
 	ND_MUL        // *
 	ND_DIV        // /
+	ND_EQ         // ==
+	ND_NE         // !=
+	ND_LT         // <
+	ND_LE         // <=
 	ND_NUM        // number
 )
 
@@ -201,12 +219,48 @@ func newNodeNum(val int) *Node {
 }
 
 func expr() *Node {
+	return equality()
+}
+
+func equality() *Node {
+	node := relational()
+
+	for {
+		if consume("==") {
+			node = newNode(ND_EQ, node, relational())
+		} else if consume("!=") {
+			node = newNode(ND_NE, node, relational())
+		} else {
+			return node
+		}
+	}
+}
+
+func relational() *Node {
+	node := add()
+
+	for {
+		if consume("<") {
+			node = newNode(ND_LT, node, add())
+		} else if consume("<=") {
+			node = newNode(ND_LE, node, add())
+		} else if consume(">") {
+			node = newNode(ND_LT, add(), node)
+		} else if consume(">=") {
+			node = newNode(ND_LE, add(), node)
+		} else {
+			return node
+		}
+	}
+}
+
+func add() *Node {
 	node := mul()
 
 	for {
-		if consume('+') {
+		if consume("+") {
 			node = newNode(ND_ADD, node, mul())
-		} else if consume('-') {
+		} else if consume("-") {
 			node = newNode(ND_SUB, node, mul())
 		} else {
 			return node
@@ -218,9 +272,9 @@ func mul() *Node {
 	node := unary()
 
 	for {
-		if consume('*') {
+		if consume("*") {
 			node = newNode(ND_MUL, node, unary())
-		} else if consume('/') {
+		} else if consume("/") {
 			node = newNode(ND_DIV, node, unary())
 		} else {
 			return node
@@ -229,9 +283,9 @@ func mul() *Node {
 }
 
 func unary() *Node {
-	if consume('+') {
+	if consume("+") {
 		return unary()
-	} else if consume('-') {
+	} else if consume("-") {
 		return newNode(ND_SUB, newNodeNum(0), unary())
 	}
 	return primary()
@@ -239,9 +293,9 @@ func unary() *Node {
 
 func primary() *Node {
 	// If the next token is '(', it shouled be '(' expr ')'
-	if consume('(') {
+	if consume("(") {
 		node := expr()
-		expect(')')
+		expect(")")
 		return node
 	}
 
@@ -275,6 +329,22 @@ func gen(node *Node) {
 	case ND_DIV:
 		fmt.Printf("  cqo\n")
 		fmt.Printf("  idiv rdi\n")
+	case ND_EQ:
+		fmt.Printf("  cmp rax, rdi\n")
+		fmt.Printf("  sete al\n")
+		fmt.Printf("  movzb rax, al\n")
+	case ND_NE:
+		fmt.Printf("  cmp rax, rdi\n")
+		fmt.Printf("  setne al\n")
+		fmt.Printf("  movzb rax, al\n")
+	case ND_LT:
+		fmt.Printf("  cmp rax, rdi\n")
+		fmt.Printf("  setl al\n")
+		fmt.Printf("  movzb rax, al\n")
+	case ND_LE:
+		fmt.Printf("  cmp rax, rdi\n")
+		fmt.Printf("  setle al\n")
+		fmt.Printf("  movzb rax, al\n")
 	}
 
 	fmt.Printf("  push rax\n")
