@@ -115,14 +115,12 @@ func TestTokenize(t *testing.T) {
 	}
 	for _, tC := range testCases {
 		t.Run(tC.str, func(t *testing.T) {
-			actual, err := tokenize(tC.str)
-
-			if err != nil {
+			if err := tokenize(tC.str); err != nil {
 				t.Fatal(err)
 			}
 
-			if !reflect.DeepEqual(actual, tC.expected) {
-				t.Fatalf("Tokenizing '%s' failed.\nactual:\n%+v\nexpected:\n%+v\n", tC.str, showTokens(actual), showTokens(tC.expected))
+			if !reflect.DeepEqual(token, tC.expected) {
+				t.Fatalf("Tokenizing '%s' failed.\nactual:\n%+v\nexpected:\n%+v\n", tC.str, showTokens(token), showTokens(tC.expected))
 			}
 		})
 	}
