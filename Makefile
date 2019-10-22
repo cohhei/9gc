@@ -1,4 +1,4 @@
-SRCS=$(wildcard *.c)
+SRCS=$(wildcard *.go)
 OBJS=$(SRCS:.c=.o)
 
 9gc: $(OBJS)

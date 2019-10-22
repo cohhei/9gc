@@ -4,23 +4,26 @@ package main
 type NodeKind int
 
 const (
-	ND_ADD = iota // +
-	ND_SUB        // -
-	ND_MUL        // *
-	ND_DIV        // /
-	ND_EQ         // ==
-	ND_NE         // !=
-	ND_LT         // <
-	ND_LE         // <=
-	ND_NUM        // number
+	ND_ADD    = iota // +
+	ND_SUB           // -
+	ND_MUL           // *
+	ND_DIV           // /
+	ND_ASSIGN        // =
+	ND_LVAR          // local variable
+	ND_EQ            // ==
+	ND_NE            // !=
+	ND_LT            // <
+	ND_LE            // <=
+	ND_NUM           // number
 )
 
 // Node is a type for the abstract syntax tree
 type Node struct {
-	kind NodeKind // The kind of the node
-	lhs  *Node    // left-hand side
-	rhs  *Node    // right-hand side
-	val  int      // The value of ND_NUM
+	kind   NodeKind // The kind of the node
+	lhs    *Node    // left-hand side
+	rhs    *Node    // right-hand side
+	val    int      // The value of ND_NUM
+	offset int      // The velue of ND_LVAR
 }
 
 func newNode(kind NodeKind, lhs *Node, rhs *Node) *Node {
@@ -40,8 +43,30 @@ func newNodeNum(val int) *Node {
 	return node
 }
 
+var code []*Node
+
+func assign() *Node {
+	node := equality()
+	if consume("=") {
+		node = newNode(ND_ASSIGN, node, assign())
+	}
+	return node
+}
+
 func expr() *Node {
-	return equality()
+	return assign()
+}
+
+func stmt() *Node {
+	node := expr()
+	expect(";")
+	return node
+}
+
+func program() {
+	for !token.atEof() {
+		code = append(code, stmt())
+	}
 }
 
 func equality() *Node {
@@ -119,6 +144,13 @@ func primary() *Node {
 		node := expr()
 		expect(")")
 		return node
+	}
+
+	if tok := consumeIdent(); tok != nil {
+		var node Node
+		node.kind = ND_LVAR
+		node.offset = int((tok.str[0] - 'a' + 1) * 8)
+		return &node
 	}
 
 	// If not so, it should be a number

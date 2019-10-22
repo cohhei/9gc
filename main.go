@@ -14,14 +14,22 @@ func main() {
 	if err := tokenize(os.Args[1]); err != nil {
 		panic(err)
 	}
-	node := expr()
+	program()
 
 	fmt.Printf(".intel_syntax noprefix\n")
 	fmt.Printf(".global main\n")
 	fmt.Printf("main:\n")
 
-	gen(node)
+	fmt.Printf("  push rbp\n")
+	fmt.Printf("  mov rbp, rsp\n")
+	fmt.Printf("  sub rsp, 208\n")
 
-	fmt.Printf("  pop rax\n")
+	for _, c := range code {
+		gen(c)
+		fmt.Printf("  pop rax\n")
+	}
+
+	fmt.Printf("  mov rsp, rbp\n")
+	fmt.Printf("  pop rbp\n")
 	fmt.Printf("  ret\n")
 }

@@ -112,6 +112,31 @@ func TestTokenize(t *testing.T) {
 				},
 			},
 		},
+		{
+			"a=1;",
+			&Token{
+				kind: TK_IDENT,
+				str:  "a",
+				len:  1,
+				next: &Token{
+					kind: TK_RESERVED,
+					str:  "=",
+					len:  1,
+					next: &Token{
+						kind: TK_NUM,
+						val:  1,
+						str:  "1",
+						len:  1,
+						next: &Token{
+							kind: TK_RESERVED,
+							str:  ";",
+							len:  1,
+							next: tokenEof,
+						},
+					},
+				},
+			},
+		},
 	}
 	for _, tC := range testCases {
 		t.Run(tC.str, func(t *testing.T) {

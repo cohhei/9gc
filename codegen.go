@@ -2,9 +2,34 @@ package main
 
 import "fmt"
 
+func genLval(node *Node) {
+	if node.kind != ND_LVAR {
+		panic("Not valiable")
+	}
+
+	fmt.Printf("  mov rax, rbp\n")
+	fmt.Printf("  sub rax, %d\n", node.offset)
+	fmt.Printf("  push rax\n")
+}
 func gen(node *Node) {
-	if node.kind == ND_NUM {
+	switch node.kind {
+	case ND_NUM:
 		fmt.Printf("  push %d\n", node.val)
+		return
+	case ND_LVAR:
+		genLval(node)
+		fmt.Printf("  pop rax\n")
+		fmt.Printf("  mov rax, [rax]\n")
+		fmt.Printf("  push rax\n")
+		return
+	case ND_ASSIGN:
+		genLval(node.lhs)
+		gen(node.rhs)
+
+		fmt.Printf("  pop rdi\n")
+		fmt.Printf("  pop rax\n")
+		fmt.Printf("  mov [rax], rdi\n")
+		fmt.Printf("  push rdi\n")
 		return
 	}
 

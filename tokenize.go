@@ -11,6 +11,7 @@ type TokenKind int
 
 const (
 	TK_RESERVED TokenKind = iota
+	TK_IDENT
 	TK_NUM
 	TK_EOF
 )
@@ -57,6 +58,16 @@ func consume(op string) bool {
 	return true
 }
 
+// Consumes the current token if it is an identifier.
+func consumeIdent() *Token {
+	if token.kind != TK_IDENT {
+		return nil
+	}
+	t := token
+	token = token.next
+	return t
+}
+
 // expect reads the next token if it is the expected value, otherwise returns the error.
 func expect(op string) error {
 	if token.kind != TK_RESERVED || len(op) != token.len || !strings.HasPrefix(op, token.str) {
@@ -96,7 +107,7 @@ func tokenize(str string) error {
 			continue
 		}
 
-		if strings.Contains("+-*/()<>", str[0:1]) {
+		if strings.Contains("+-*/()<>;=", str[0:1]) {
 			cur = cur.newToken(TK_RESERVED, str[:1], 1)
 			str = next(str)
 			continue
@@ -112,7 +123,13 @@ func tokenize(str string) error {
 			continue
 		}
 
-		return fmt.Errorf("Couldn't tokenize.")
+		if 'a' <= str[0] && str[0] <= 'z' {
+			cur = cur.newToken(TK_IDENT, str[:1], 1)
+			str = next(str)
+			continue
+		}
+
+		return fmt.Errorf("Couldn't tokenize. '%s'", str[:1])
 	}
 
 	cur.newToken(TK_EOF, str, len(str))
