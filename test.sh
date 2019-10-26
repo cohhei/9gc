@@ -48,5 +48,6 @@ try 2 "a=2;"
 try 10 "a=2;c=10"
 try 99 "a=1;z=99"
 try 32 "a=1;z=10;32"
+try 57 "triple=3; nineteen=19; nineteen*triple"
 
 echo OK

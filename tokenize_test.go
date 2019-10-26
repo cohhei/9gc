@@ -113,11 +113,11 @@ func TestTokenize(t *testing.T) {
 			},
 		},
 		{
-			"a=1;",
+			"abc=1;abc",
 			&Token{
 				kind: TK_IDENT,
-				str:  "a",
-				len:  1,
+				str:  "abc",
+				len:  3,
 				next: &Token{
 					kind: TK_RESERVED,
 					str:  "=",
@@ -131,7 +131,12 @@ func TestTokenize(t *testing.T) {
 							kind: TK_RESERVED,
 							str:  ";",
 							len:  1,
-							next: tokenEof,
+							next: &Token{
+								kind: TK_IDENT,
+								str:  "abc",
+								len:  3,
+								next: tokenEof,
+							},
 						},
 					},
 				},

@@ -149,7 +149,20 @@ func primary() *Node {
 	if tok := consumeIdent(); tok != nil {
 		var node Node
 		node.kind = ND_LVAR
-		node.offset = int((tok.str[0] - 'a' + 1) * 8)
+
+		lvar := tok.findLVar()
+		if lvar != nil {
+			node.offset = lvar.offset
+		} else {
+			lvar := &LVar{
+				next:   locals,
+				name:   tok.str,
+				len:    tok.len,
+				offset: getOffset(),
+			}
+			node.offset = lvar.offset
+			locals = lvar
+		}
 		return &node
 	}
 
@@ -159,4 +172,11 @@ func primary() *Node {
 		panic(err)
 	}
 	return newNodeNum(val)
+}
+
+func getOffset() int {
+	if locals == nil {
+		return 8
+	}
+	return locals.offset + 8
 }

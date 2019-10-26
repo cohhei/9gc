@@ -28,6 +28,24 @@ type Token struct {
 // Current token
 var token *Token
 
+type LVar struct {
+	next   *LVar
+	name   string
+	len    int // Length of the name
+	offset int // Offset from RBP
+}
+
+var locals *LVar // Local variables
+
+func (t *Token) findLVar() *LVar {
+	for v := locals; v != nil; v = v.next {
+		if v.len == t.len && t.str == v.name {
+			return v
+		}
+	}
+	return nil
+}
+
 // atEof returns true if the token is EOF
 func (t *Token) atEof() bool {
 	return t.kind == TK_EOF
@@ -115,7 +133,7 @@ func tokenize(str string) error {
 
 		if isDigit(str[0]) {
 			var err error
-			cur, err = getDigit(cur, str)
+			cur, err = cur.readDigit(str)
 			if err != nil {
 				return err
 			}
@@ -123,9 +141,9 @@ func tokenize(str string) error {
 			continue
 		}
 
-		if 'a' <= str[0] && str[0] <= 'z' {
-			cur = cur.newToken(TK_IDENT, str[:1], 1)
-			str = next(str)
+		if isIdent(str[0]) {
+			cur = cur.readIdent(str)
+			str = str[len(cur.str):]
 			continue
 		}
 
@@ -149,7 +167,7 @@ func isDigit(s byte) bool {
 	return '0' <= s && s <= '9'
 }
 
-func getDigit(cur *Token, str string) (*Token, error) {
+func (t *Token) readDigit(str string) (*Token, error) {
 	for i := 0; i < len(str); i++ {
 		if isDigit(str[i]) {
 			continue
@@ -158,16 +176,31 @@ func getDigit(cur *Token, str string) (*Token, error) {
 		if err != nil {
 			return nil, err
 		}
-		t := cur.newToken(TK_NUM, str[:i], i)
-		t.val = dig
-		return t, nil
+		tok := t.newToken(TK_NUM, str[:i], i)
+		tok.val = dig
+		return tok, nil
 	}
 
 	dig, err := strconv.Atoi(str)
 	if err != nil {
 		return nil, err
 	}
-	t := cur.newToken(TK_NUM, str, len(str))
-	t.val = dig
-	return t, nil
+	tok := t.newToken(TK_NUM, str, len(str))
+	tok.val = dig
+	return tok, nil
+}
+
+func isIdent(s byte) bool {
+	return ('a' <= s && s <= 'z') || ('A' <= s && s <= 'Z') || s == '_'
+}
+
+func (t *Token) readIdent(str string) *Token {
+	for i := 0; i < len(str); i++ {
+		if isIdent(str[i]) {
+			continue
+		}
+		return t.newToken(TK_IDENT, str[:i], i)
+	}
+
+	return t.newToken(TK_IDENT, str, len(str))
 }
