@@ -49,5 +49,12 @@ try 10 "a=2;c=10"
 try 99 "a=1;z=99"
 try 32 "a=1;z=10;32"
 try 57 "triple=3; nineteen=19; nineteen*triple"
+try 5 "return 5
+return 10;"
+try 14 "
+a = 3
+b = 5 * 6 - 8
+return a + b / 2
+"
 
 echo OK

@@ -11,6 +11,7 @@ type TokenKind int
 
 const (
 	TK_RESERVED TokenKind = iota
+	TK_RETURN
 	TK_IDENT
 	TK_NUM
 	TK_EOF
@@ -69,7 +70,7 @@ func (t *Token) newToken(kind TokenKind, str string, len int) *Token {
 // consume returns true and reads the next token if it is the expected value.
 // Otherwise consume returns false.
 func consume(op string) bool {
-	if token.kind != TK_RESERVED || len(op) != token.len || !strings.HasPrefix(op, token.str) {
+	if !token.isReserved() || len(op) != token.len || op != token.str {
 		return false
 	}
 	token = token.next
@@ -88,7 +89,7 @@ func consumeIdent() *Token {
 
 // expect reads the next token if it is the expected value, otherwise returns the error.
 func expect(op string) error {
-	if token.kind != TK_RESERVED || len(op) != token.len || !strings.HasPrefix(op, token.str) {
+	if token.kind != TK_RESERVED || len(op) != token.len || op != token.str {
 		return fmt.Errorf("It is not '%s', but '%s'", op, token.str)
 	}
 	token = token.next
@@ -98,7 +99,7 @@ func expect(op string) error {
 // expectNumber returns the value and read the next token, otherwise returns the error.
 func expectNumber() (int, error) {
 	if token.kind != TK_NUM {
-		return 0, fmt.Errorf("'%s' is not a number.", string(token.str[0]))
+		return 0, fmt.Errorf("'%s' is not a number.", string(token.str))
 	}
 	val := token.val
 	token = token.next
@@ -137,6 +138,12 @@ func tokenize(str string) error {
 			if err != nil {
 				return err
 			}
+			str = str[len(cur.str):]
+			continue
+		}
+
+		if startswitch(str, "return") && !isDigit(str[6]) && !isIdent(str[6]) {
+			cur = cur.newToken(TK_RETURN, str[:6], 6)
 			str = str[len(cur.str):]
 			continue
 		}
@@ -203,4 +210,8 @@ func (t *Token) readIdent(str string) *Token {
 	}
 
 	return t.newToken(TK_IDENT, str, len(str))
+}
+
+func (t *Token) isReserved() bool {
+	return t.kind == TK_RESERVED || t.kind == TK_RETURN
 }

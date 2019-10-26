@@ -15,6 +15,7 @@ const (
 	ND_LT            // <
 	ND_LE            // <=
 	ND_NUM           // number
+	ND_RETURN        // return
 )
 
 // Node is a type for the abstract syntax tree
@@ -58,7 +59,17 @@ func expr() *Node {
 }
 
 func stmt() *Node {
-	node := expr()
+	var node *Node
+
+	if consume("return") {
+		node = &Node{
+			kind: ND_RETURN,
+			lhs:  expr(),
+		}
+	} else {
+		node = expr()
+	}
+
 	expect(";")
 	return node
 }

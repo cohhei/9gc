@@ -142,6 +142,40 @@ func TestTokenize(t *testing.T) {
 				},
 			},
 		},
+		{
+			"return 5;",
+			&Token{
+				kind: TK_RETURN,
+				str:  "return",
+				len:  6,
+				next: &Token{
+					kind: TK_NUM,
+					str:  "5",
+					len:  1,
+					val:  5,
+					next: &Token{
+						kind: TK_RESERVED,
+						str:  ";",
+						len:  1,
+						next: tokenEof,
+					},
+				},
+			},
+		},
+		{
+			"returned;",
+			&Token{
+				kind: TK_IDENT,
+				str:  "returned",
+				len:  8,
+				next: &Token{
+					kind: TK_RESERVED,
+					str:  ";",
+					len:  1,
+					next: tokenEof,
+				},
+			},
+		},
 	}
 	for _, tC := range testCases {
 		t.Run(tC.str, func(t *testing.T) {

@@ -31,6 +31,13 @@ func gen(node *Node) {
 		fmt.Printf("  mov [rax], rdi\n")
 		fmt.Printf("  push rdi\n")
 		return
+	case ND_RETURN:
+		gen(node.lhs)
+		fmt.Printf("  pop rax\n")
+		fmt.Printf("  mov rsp, rbp\n")
+		fmt.Printf("  pop rbp\n")
+		fmt.Printf("  ret\n")
+		return
 	}
 
 	gen(node.lhs)
