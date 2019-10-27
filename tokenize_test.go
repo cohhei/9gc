@@ -145,7 +145,7 @@ func TestTokenize(t *testing.T) {
 		{
 			"return 5;",
 			&Token{
-				kind: TK_RETURN,
+				kind: TK_RESERVED,
 				str:  "return",
 				len:  6,
 				next: &Token{

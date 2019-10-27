@@ -11,7 +11,6 @@ type TokenKind int
 
 const (
 	TK_RESERVED TokenKind = iota
-	TK_RETURN
 	TK_IDENT
 	TK_NUM
 	TK_EOF
@@ -89,7 +88,7 @@ func consumeIdent() *Token {
 
 // expect reads the next token if it is the expected value, otherwise returns the error.
 func expect(op string) error {
-	if token.kind != TK_RESERVED || len(op) != token.len || op != token.str {
+	if !token.isReserved() || len(op) != token.len || op != token.str {
 		return fmt.Errorf("It is not '%s', but '%s'", op, token.str)
 	}
 	token = token.next
@@ -142,9 +141,10 @@ func tokenize(str string) error {
 			continue
 		}
 
-		if startswitch(str, "return") && !isDigit(str[6]) && !isIdent(str[6]) {
-			cur = cur.newToken(TK_RETURN, str[:6], 6)
-			str = str[len(cur.str):]
+		if k := startWithReserved(str); k != "" {
+			len := len(k)
+			cur = cur.newToken(TK_RESERVED, str[:len], len)
+			str = str[len:]
 			continue
 		}
 
@@ -168,6 +168,20 @@ func next(str string) string {
 
 func isSpace(s byte) bool {
 	return s == '\t' || s == '\n' || s == '\v' || s == '\f' || s == '\r' || s == ' '
+}
+
+var keywords = []string{
+	"return",
+}
+
+func startWithReserved(str string) string {
+	for _, k := range keywords {
+		len := len(k)
+		if startswitch(str, k) && !isDigit(str[len]) && !isIdent(str[len]) {
+			return k
+		}
+	}
+	return ""
 }
 
 func isDigit(s byte) bool {
@@ -213,5 +227,5 @@ func (t *Token) readIdent(str string) *Token {
 }
 
 func (t *Token) isReserved() bool {
-	return t.kind == TK_RESERVED || t.kind == TK_RETURN
+	return t.kind == TK_RESERVED
 }
