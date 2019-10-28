@@ -18,11 +18,11 @@ const (
 
 // Token
 type Token struct {
-	kind TokenKind // The kind of the token
-	next *Token    // The next token
-	val  int       // The value of TK_NUM
 	str  string    // Token string
 	len  int       // Token length
+	val  int       // The value of TK_NUM
+	kind TokenKind // The kind of the token
+	next *Token    // The next token
 }
 
 // Current token
@@ -125,7 +125,7 @@ func tokenize(str string) error {
 			continue
 		}
 
-		if strings.Contains("+-*/()<>;=", str[0:1]) {
+		if strings.Contains("+-*/()<>;={}", str[0:1]) {
 			cur = cur.newToken(TK_RESERVED, str[:1], 1)
 			str = next(str)
 			continue

@@ -11,169 +11,71 @@ var tokenEof = &Token{kind: TK_EOF}
 func TestTokenize(t *testing.T) {
 	testCases := []struct {
 		str      string
-		expected *Token
+		expected []*Token
 	}{
 		{
 			" 1 ",
-			&Token{TK_NUM, tokenEof, 1, "1", 1},
+			[]*Token{{"1", 1, 1, TK_NUM, tokenEof}},
 		},
 		{
 			"0 + 45 - 5 ",
-			&Token{
-				kind: TK_NUM,
-				val:  0,
-				str:  "0",
-				len:  1,
-				next: &Token{
-					kind: TK_RESERVED,
-					str:  "+",
-					len:  1,
-					next: &Token{
-						kind: TK_NUM,
-						val:  45,
-						str:  "45",
-						len:  2,
-						next: &Token{
-							kind: TK_RESERVED,
-							str:  "-",
-							len:  1,
-							next: &Token{
-								kind: TK_NUM,
-								val:  5,
-								str:  "5",
-								len:  1,
-								next: tokenEof,
-							},
-						},
-					},
-				},
+			[]*Token{
+				{"0", 1, 0, TK_NUM, nil},
+				{"+", 1, 0, TK_RESERVED, nil},
+				{"45", 2, 45, TK_NUM, nil},
+				{"-", 1, 0, TK_RESERVED, nil},
+				{"5", 1, 5, TK_NUM, nil},
+				tokenEof,
 			},
 		},
 		{
 			"5*(9-6)",
-			&Token{
-				kind: TK_NUM,
-				val:  5,
-				str:  "5",
-				len:  1,
-				next: &Token{
-					kind: TK_RESERVED,
-					str:  "*",
-					len:  1,
-					next: &Token{
-						kind: TK_RESERVED,
-						str:  "(",
-						len:  1,
-						next: &Token{
-							kind: TK_NUM,
-							str:  "9",
-							val:  9,
-							len:  1,
-							next: &Token{
-								kind: TK_RESERVED,
-								str:  "-",
-								len:  1,
-								next: &Token{
-									kind: TK_NUM,
-									val:  6,
-									str:  "6",
-									len:  1,
-									next: &Token{
-										kind: TK_RESERVED,
-										str:  ")",
-										len:  1,
-										next: tokenEof,
-									},
-								},
-							},
-						},
-					},
-				},
+			[]*Token{
+				{"5", 1, 5, TK_NUM, nil},
+				{"*", 1, 0, TK_RESERVED, nil},
+				{"(", 1, 0, TK_RESERVED, nil},
+				{"9", 1, 9, TK_NUM, nil},
+				{"-", 1, 0, TK_RESERVED, nil},
+				{"6", 1, 6, TK_NUM, nil},
+				{")", 1, 0, TK_RESERVED, nil},
+				tokenEof,
 			},
 		},
 		{
 			"42!=42",
-			&Token{
-				kind: TK_NUM,
-				val:  42,
-				str:  "42",
-				len:  2,
-				next: &Token{
-					kind: TK_RESERVED,
-					str:  "!=",
-					len:  2,
-					next: &Token{
-						kind: TK_NUM,
-						val:  42,
-						str:  "42",
-						len:  2,
-						next: tokenEof,
-					},
-				},
+			[]*Token{
+				{"42", 2, 42, TK_NUM, nil},
+				{"!=", 2, 0, TK_RESERVED, nil},
+				{"42", 2, 42, TK_NUM, nil},
+				tokenEof,
 			},
 		},
 		{
 			"abc=1;abc",
-			&Token{
-				kind: TK_IDENT,
-				str:  "abc",
-				len:  3,
-				next: &Token{
-					kind: TK_RESERVED,
-					str:  "=",
-					len:  1,
-					next: &Token{
-						kind: TK_NUM,
-						val:  1,
-						str:  "1",
-						len:  1,
-						next: &Token{
-							kind: TK_RESERVED,
-							str:  ";",
-							len:  1,
-							next: &Token{
-								kind: TK_IDENT,
-								str:  "abc",
-								len:  3,
-								next: tokenEof,
-							},
-						},
-					},
-				},
+			[]*Token{
+				{"abc", 3, 0, TK_IDENT, nil},
+				{"=", 1, 0, TK_RESERVED, nil},
+				{"1", 1, 1, TK_NUM, nil},
+				{";", 1, 0, TK_RESERVED, nil},
+				{"abc", 3, 0, TK_IDENT, nil},
+				tokenEof,
 			},
 		},
 		{
 			"return 5;",
-			&Token{
-				kind: TK_RESERVED,
-				str:  "return",
-				len:  6,
-				next: &Token{
-					kind: TK_NUM,
-					str:  "5",
-					len:  1,
-					val:  5,
-					next: &Token{
-						kind: TK_RESERVED,
-						str:  ";",
-						len:  1,
-						next: tokenEof,
-					},
-				},
+			[]*Token{
+				{"return", 6, 0, TK_RESERVED, nil},
+				{"5", 1, 5, TK_NUM, nil},
+				{";", 1, 0, TK_RESERVED, nil},
+				tokenEof,
 			},
 		},
 		{
 			"returned;",
-			&Token{
-				kind: TK_IDENT,
-				str:  "returned",
-				len:  8,
-				next: &Token{
-					kind: TK_RESERVED,
-					str:  ";",
-					len:  1,
-					next: tokenEof,
-				},
+			[]*Token{
+				{"returned", 8, 0, TK_IDENT, nil},
+				{";", 1, 0, TK_RESERVED, nil},
+				tokenEof,
 			},
 		},
 	}
@@ -183,8 +85,9 @@ func TestTokenize(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			if !reflect.DeepEqual(token, tC.expected) {
-				t.Fatalf("Tokenizing '%s' failed.\nactual:\n%+v\nexpected:\n%+v\n", tC.str, showTokens(token), showTokens(tC.expected))
+			expected := joinTokens(tC.expected)
+			if !reflect.DeepEqual(token, expected) {
+				t.Fatalf("Tokenizing '%s' failed.\nactual:\n%+v\nexpected:\n%+v\n", tC.str, showTokens(token), showTokens(expected))
 			}
 		})
 	}
@@ -195,4 +98,14 @@ func showTokens(t *Token) string {
 		return ""
 	}
 	return fmt.Sprintf("%+v\n%+v", t, showTokens(t.next))
+}
+
+func joinTokens(tokens []*Token) *Token {
+	var head Token
+	cur := &head
+	for _, t := range tokens {
+		cur.next = t
+		cur = cur.next
+	}
+	return head.next
 }
