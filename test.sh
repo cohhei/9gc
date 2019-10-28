@@ -56,5 +56,21 @@ a = 3
 b = 5 * 6 - 8
 return a + b / 2
 "
+try 1 "
+a = 1
+b = 4
+if a == 1 {
+  return a
+}
+return b
+"
+try 4 "
+a = 1
+b = 4
+if a != 1 {
+  return a
+}
+return b
+"
 
 echo OK

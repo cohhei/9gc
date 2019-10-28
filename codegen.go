@@ -2,6 +2,12 @@ package main
 
 import "fmt"
 
+var label int
+func seq() int {
+	s := label
+	label++
+	return s
+}
 func genLval(node *Node) {
 	if node.kind != ND_LVAR {
 		panic("Not valiable")
@@ -38,8 +44,20 @@ func gen(node *Node) {
 		fmt.Printf("  pop rbp\n")
 		fmt.Printf("  ret\n")
 		return
+	case ND_ADD, ND_SUB, ND_MUL, ND_DIV, ND_EQ, ND_NE, ND_LT, ND_LE:
+		genBinary(node)
+	case ND_IF:
+		gen(node.cond)
+		s := seq()
+		fmt.Printf("  pop rax\n")
+		fmt.Printf("  cmp rax, 0\n")
+		fmt.Printf("  je .L.end.%d\n", s)
+		gen(node.then)
+		fmt.Printf(".L.end.%d:\n", s)
 	}
+}
 
+func genBinary(node *Node) {
 	gen(node.lhs)
 	gen(node.rhs)
 
