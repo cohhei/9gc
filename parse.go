@@ -16,6 +16,7 @@ const (
 	ND_LE            // <=
 	ND_NUM           // number
 	ND_RETURN        // return
+	ND_IF            // if
 )
 
 // Node is a type for the abstract syntax tree
@@ -25,6 +26,10 @@ type Node struct {
 	rhs    *Node    // right-hand side
 	val    int      // The value of ND_NUM
 	offset int      // The velue of ND_LVAR
+
+	// "if"
+	cond *Node
+	then *Node
 }
 
 func newNode(kind NodeKind, lhs *Node, rhs *Node) *Node {
@@ -65,6 +70,19 @@ func stmt() *Node {
 		node = &Node{
 			kind: ND_RETURN,
 			lhs:  expr(),
+		}
+	} else if consume("if") {
+		node = &Node{
+			kind: ND_IF,
+			cond: expr(),
+		}
+		if consume("{") {
+			node.then = stmt()
+		} else {
+			panic("missing '{' the if statement")
+		}
+		if !consume("}") {
+			panic("missing '}' the if statement")
 		}
 	} else {
 		node = expr()

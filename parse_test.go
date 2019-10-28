@@ -57,9 +57,33 @@ func TestParse(t *testing.T) {
 				},
 			},
 		},
+		{
+			desc:  "LocalVariable",
+			input: "if a==1 { return a } return 100",
+			expected: []*Node{
+				{
+					kind: ND_IF,
+					cond: &Node{
+						kind: ND_EQ,
+						lhs:  &Node{kind: ND_LVAR, offset: 8},
+						rhs:  &Node{kind: ND_NUM, val: 1},
+					},
+					then: &Node{
+						kind: ND_RETURN,
+						lhs:  &Node{kind: ND_LVAR, offset: 8},
+					},
+				},
+
+				&Node{
+					kind: ND_RETURN,
+					lhs:  &Node{kind: ND_NUM, val: 100},
+				},
+			},
+		},
 	}
 	for _, tC := range testCases {
 		t.Run(tC.desc, func(t *testing.T) {
+			token, code, locals = nil, nil, nil
 			if err := tokenize(tC.input); err != nil {
 				t.Fatal(err)
 			}
@@ -87,6 +111,12 @@ func showHands(node *Node, tabs string) string {
 	}
 	if node.rhs != nil {
 		str = fmt.Sprintf("%s\n%s", str, showHands(node.rhs, tabs+"\t"))
+	}
+	if node.cond != nil {
+		str = fmt.Sprintf("%s\n%s", str, showHands(node.cond, tabs+"\t"))
+	}
+	if node.then != nil {
+		str = fmt.Sprintf("%s\n%s", str, showHands(node.then, tabs+"\t"))
 	}
 	return str
 }
