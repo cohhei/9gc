@@ -78,6 +78,20 @@ func TestTokenize(t *testing.T) {
 				tokenEof,
 			},
 		},
+		{
+			"if a==1 { return a }",
+			[]*Token{
+				{"if", 2, 0, TK_RESERVED, nil},
+				{"a", 1, 0, TK_IDENT, nil},
+				{"==", 2, 0, TK_RESERVED, nil},
+				{"1", 1, 1, TK_NUM, nil},
+				{"{", 1, 0, TK_RESERVED, nil},
+				{"return", 6, 0, TK_RESERVED, nil},
+				{"a", 1, 0, TK_IDENT, nil},
+				{"}", 1, 0, TK_RESERVED, nil},
+				tokenEof,
+			},
+		},
 	}
 	for _, tC := range testCases {
 		t.Run(tC.str, func(t *testing.T) {

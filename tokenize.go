@@ -171,7 +171,7 @@ func isSpace(s byte) bool {
 }
 
 var keywords = []string{
-	"return",
+	"return", "if",
 }
 
 func startWithReserved(str string) string {
