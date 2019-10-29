@@ -30,6 +30,7 @@ type Node struct {
 	// "if"
 	cond *Node
 	then *Node
+	els  *Node
 }
 
 func newNode(kind NodeKind, lhs *Node, rhs *Node) *Node {
@@ -72,23 +73,38 @@ func stmt() *Node {
 			lhs:  expr(),
 		}
 	} else if consume("if") {
-		node = &Node{
-			kind: ND_IF,
-			cond: expr(),
-		}
-		if consume("{") {
-			node.then = stmt()
-		} else {
-			panic("missing '{' the if statement")
-		}
-		if !consume("}") {
-			panic("missing '}' the if statement")
-		}
+		node = ifstmt()
 	} else {
 		node = expr()
 	}
 
 	expect(";")
+	return node
+}
+
+func ifstmt() *Node {
+	node := &Node{
+		kind: ND_IF,
+		cond: expr(),
+	}
+	if consume("{") {
+		node.then = stmt()
+	} else {
+		panic("missing '{' the if statement")
+	}
+	if !consume("}") {
+		panic("missing '}' the if statement")
+	}
+	if consume("else") {
+		if consume("if") {
+			node.els = ifstmt()
+		} else if consume("{") {
+			node.els = stmt()
+			if !consume("}") {
+				panic("missing '}' the if statement")
+			}
+		}
+	}
 	return node
 }
 

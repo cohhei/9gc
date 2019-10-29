@@ -58,8 +58,8 @@ func TestParse(t *testing.T) {
 			},
 		},
 		{
-			desc:  "LocalVariable",
-			input: "if a==1 { return a } return 100",
+			desc:  "IfStatements",
+			input: "if a==1 { return a } else if a == 2 { return -1 }; return 100",
 			expected: []*Node{
 				{
 					kind: ND_IF,
@@ -71,6 +71,18 @@ func TestParse(t *testing.T) {
 					then: &Node{
 						kind: ND_RETURN,
 						lhs:  &Node{kind: ND_LVAR, offset: 8},
+					},
+					els: &Node{
+						kind: ND_IF,
+						cond: &Node{
+							kind: ND_EQ,
+							lhs:  &Node{kind: ND_LVAR, offset: 8},
+							rhs:  &Node{kind: ND_NUM, val: 2},
+						},
+						then: &Node{
+							kind: ND_RETURN,
+							lhs:  &Node{kind: ND_SUB, lhs: &Node{kind: ND_NUM, val: 0}, rhs: &Node{kind: ND_NUM, val: 1}},
+						},
 					},
 				},
 
