@@ -87,12 +87,11 @@ func consumeIdent() *Token {
 }
 
 // expect reads the next token if it is the expected value, otherwise returns the error.
-func expect(op string) error {
+func expect(op string) {
 	if !token.isReserved() || len(op) != token.len || op != token.str {
-		return fmt.Errorf("It is not '%s', but '%s'", op, token.str)
+		panic(fmt.Errorf("expected '%s', found '%s'", op, token.str))
 	}
 	token = token.next
-	return nil
 }
 
 // expectNumber returns the value and read the next token, otherwise returns the error.

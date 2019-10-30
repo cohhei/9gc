@@ -14,9 +14,12 @@ const (
 	ND_NE            // !=
 	ND_LT            // <
 	ND_LE            // <=
+	ND_INC           // ++
+	ND_DEC           // --
 	ND_NUM           // number
 	ND_RETURN        // return
 	ND_IF            // if
+	ND_FOR           // for
 )
 
 // Node is a type for the abstract syntax tree
@@ -27,10 +30,12 @@ type Node struct {
 	val    int      // The value of ND_NUM
 	offset int      // The velue of ND_LVAR
 
-	// "if"
+	// "if" and "for"
 	cond *Node
 	then *Node
 	els  *Node
+	init *Node
+	inc  *Node
 }
 
 func newNode(kind NodeKind, lhs *Node, rhs *Node) *Node {
@@ -74,11 +79,31 @@ func stmt() *Node {
 		}
 	} else if consume("if") {
 		node = ifstmt()
+	} else if consume("for") {
+		node = &Node{kind: ND_FOR}
+		if consume("{") { // for {}
+			node.then = stmt()
+			expect("}")
+		} else {
+			unknown := expr()
+			if consume(";") { // for i=0;i<N;i++ {}
+				node.init = unknown
+				node.cond = expr()
+				expect(";")
+				node.inc = expr()
+			} else { // for i<N {}
+				node.cond = unknown
+			}
+			expect("{")
+			node.then = stmt()
+			expect("}")
+		}
+
 	} else {
 		node = expr()
 	}
 
-	expect(";")
+	consume(";")
 	return node
 }
 
@@ -87,22 +112,15 @@ func ifstmt() *Node {
 		kind: ND_IF,
 		cond: expr(),
 	}
-	if consume("{") {
-		node.then = stmt()
-	} else {
-		panic("missing '{' the if statement")
-	}
-	if !consume("}") {
-		panic("missing '}' the if statement")
-	}
+	expect("{")
+	node.then = stmt()
+	expect("}")
 	if consume("else") {
 		if consume("if") {
 			node.els = ifstmt()
 		} else if consume("{") {
 			node.els = stmt()
-			if !consume("}") {
-				panic("missing '}' the if statement")
-			}
+			expect("}")
 		}
 	}
 	return node
@@ -180,7 +198,23 @@ func unary() *Node {
 	} else if consume("-") {
 		return newNode(ND_SUB, newNodeNum(0), unary())
 	}
-	return primary()
+	return postfix()
+}
+
+func postfix() *Node {
+	node := primary()
+	if consume("++") {
+		node = &Node{
+			kind: ND_INC,
+			lhs:  node,
+		}
+	} else if consume("--") {
+		node = &Node{
+			kind: ND_DEC,
+			lhs:  node,
+		}
+	}
+	return node
 }
 
 func primary() *Node {

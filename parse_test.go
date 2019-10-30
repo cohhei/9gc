@@ -92,6 +92,40 @@ func TestParse(t *testing.T) {
 				},
 			},
 		},
+		{
+			desc:  "ForStatement",
+			input: "for i = 1; i < 10; i++ { 1 }",
+			expected: []*Node{
+				{
+					kind: ND_FOR,
+					init: &Node{kind: ND_ASSIGN, lhs: &Node{kind: ND_LVAR, offset: 8}, rhs: &Node{kind: ND_NUM, val: 1}},
+					cond: &Node{kind: ND_LT, lhs: &Node{kind: ND_LVAR, offset: 8}, rhs: &Node{kind: ND_NUM, val: 10}},
+					inc:  &Node{kind: ND_INC, lhs: &Node{kind: ND_LVAR, offset: 8}},
+					then: &Node{kind: ND_NUM, val: 1},
+				},
+			},
+		},
+		{
+			desc:  "ForStatement",
+			input: "for i < 10 { 1 }",
+			expected: []*Node{
+				{
+					kind: ND_FOR,
+					cond: &Node{kind: ND_LT, lhs: &Node{kind: ND_LVAR, offset: 8}, rhs: &Node{kind: ND_NUM, val: 10}},
+					then: &Node{kind: ND_NUM, val: 1},
+				},
+			},
+		},
+		{
+			desc:  "ForStatement",
+			input: "for { i-- }",
+			expected: []*Node{
+				{
+					kind: ND_FOR,
+					then: &Node{kind: ND_DEC, lhs: &Node{kind: ND_LVAR, offset: 8}},
+				},
+			},
+		},
 	}
 	for _, tC := range testCases {
 		t.Run(tC.desc, func(t *testing.T) {
