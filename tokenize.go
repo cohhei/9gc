@@ -119,7 +119,8 @@ func tokenize(str string) error {
 
 		// Multi-letter punctuator
 		if startswitch(str, "==") || startswitch(str, "!=") ||
-			startswitch(str, "<=") || startswitch(str, ">=") {
+			startswitch(str, "<=") || startswitch(str, ">=") ||
+			startswitch(str, "++") || startswitch(str, "--") {
 			cur = cur.newToken(TK_RESERVED, str[:2], 2)
 			str = str[len(cur.str):]
 			continue
@@ -171,7 +172,7 @@ func isSpace(s byte) bool {
 }
 
 var keywords = []string{
-	"return", "if", "else",
+	"return", "if", "else", "for",
 }
 
 func startWithReserved(str string) string {
