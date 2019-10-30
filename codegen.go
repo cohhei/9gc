@@ -3,6 +3,7 @@ package main
 import "fmt"
 
 var label int
+
 func seq() int {
 	s := label
 	label++
@@ -51,8 +52,17 @@ func gen(node *Node) {
 		s := seq()
 		fmt.Printf("  pop rax\n")
 		fmt.Printf("  cmp rax, 0\n")
-		fmt.Printf("  je .L.end.%d\n", s)
-		gen(node.then)
+		if node.els != nil {
+			fmt.Printf("  je .L.else.%d\n", s)
+			gen(node.then)
+			fmt.Printf(".L.else.%d:\n", s)
+			gen(node.els)
+		} else {
+			fmt.Printf("  je .L.end.%d\n", s)
+			gen(node.then)
+		}
+		if node.els != nil {
+		}
 		fmt.Printf(".L.end.%d:\n", s)
 	}
 }

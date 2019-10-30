@@ -72,5 +72,21 @@ if a != 1 {
 }
 return b
 "
+try 10 "
+if 1>2 {
+  return 0
+} else {
+  return 10
+}
+"
+try 10 "
+if 1>2 {
+  return 0
+} else if 1==0 {
+  return -1
+} else {
+  return 10
+}
+"
 
 echo OK
