@@ -7,6 +7,7 @@ OBJS=$(SRCS:.c=.o)
 test: 9gc
 	./test.sh
 	go test -v ./*.go
+	rm -f 9gc *.o *~ tmp*
 
 clean:
 	rm -f 9gc *.o *~ tmp*

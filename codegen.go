@@ -19,16 +19,17 @@ func genLval(node *Node) {
 	fmt.Printf("  push rax\n")
 }
 func gen(node *Node) {
+	if node == nil {
+		return
+	}
 	switch node.kind {
 	case ND_NUM:
 		fmt.Printf("  push %d\n", node.val)
-		return
 	case ND_LVAR:
 		genLval(node)
 		fmt.Printf("  pop rax\n")
 		fmt.Printf("  mov rax, [rax]\n")
 		fmt.Printf("  push rax\n")
-		return
 	case ND_ASSIGN:
 		genLval(node.lhs)
 		gen(node.rhs)
@@ -37,16 +38,26 @@ func gen(node *Node) {
 		fmt.Printf("  pop rax\n")
 		fmt.Printf("  mov [rax], rdi\n")
 		fmt.Printf("  push rdi\n")
-		return
 	case ND_RETURN:
 		gen(node.lhs)
 		fmt.Printf("  pop rax\n")
 		fmt.Printf("  mov rsp, rbp\n")
 		fmt.Printf("  pop rbp\n")
 		fmt.Printf("  ret\n")
-		return
 	case ND_ADD, ND_SUB, ND_MUL, ND_DIV, ND_EQ, ND_NE, ND_LT, ND_LE:
 		genBinary(node)
+	case ND_INC:
+		genLval(node.lhs)
+		fmt.Printf("  pop rax\n")
+		fmt.Printf("  mov rdi, [rax]\n")
+		fmt.Printf("  add rdi, 1\n")
+		fmt.Printf("  mov [rax], rdi\n")
+	case ND_DEC:
+		genLval((node.lhs))
+		fmt.Printf("  pop rax\n")
+		fmt.Printf("  mov rdi, [rax]\n")
+		fmt.Printf("  sub rdi, 1\n")
+		fmt.Printf("  mov [rax], rdi\n")
 	case ND_IF:
 		gen(node.cond)
 		s := seq()
@@ -61,8 +72,18 @@ func gen(node *Node) {
 			fmt.Printf("  je .L.end.%d\n", s)
 			gen(node.then)
 		}
-		if node.els != nil {
-		}
+		fmt.Printf(".L.end.%d:\n", s)
+	case ND_FOR:
+		gen(node.init)
+		s := seq()
+		fmt.Printf(".L.begin.%d:\n", s)
+		gen(node.cond)
+		fmt.Printf("  pop rax\n")
+		fmt.Printf("  cmp rax, 0\n")
+		fmt.Printf("  je .L.end.%d\n", s)
+		gen(node.then)
+		gen(node.inc)
+		fmt.Printf("  jmp .L.begin.%d\n", s)
 		fmt.Printf(".L.end.%d:\n", s)
 	}
 }

@@ -88,5 +88,19 @@ if 1>2 {
   return 10
 }
 "
+try 10 "
+j = 0
+for i = 0; i < 10; i++ {
+  j++
+}
+return j
+"
+try 1 "
+i = 10
+for i > 1 {
+  i--
+}
+return i
+"
 
 echo OK
