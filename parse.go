@@ -20,6 +20,7 @@ const (
 	ND_RETURN        // return
 	ND_IF            // if
 	ND_FOR           // for
+	ND_BLOCK         // { ... }
 )
 
 // Node is a type for the abstract syntax tree
@@ -36,6 +37,9 @@ type Node struct {
 	els  *Node
 	init *Node
 	inc  *Node
+
+	// block
+	body []*Node
 }
 
 func newNode(kind NodeKind, lhs *Node, rhs *Node) *Node {
@@ -82,8 +86,7 @@ func stmt() *Node {
 	} else if consume("for") {
 		node = &Node{kind: ND_FOR}
 		if consume("{") { // for {}
-			node.then = stmt()
-			expect("}")
+			node.then = block()
 		} else {
 			unknown := expr()
 			if consume(";") { // for i=0;i<N;i++ {}
@@ -95,10 +98,10 @@ func stmt() *Node {
 				node.cond = unknown
 			}
 			expect("{")
-			node.then = stmt()
-			expect("}")
+			node.then = block()
 		}
-
+	} else if consume("{") {
+		node = block()
 	} else {
 		node = expr()
 	}
@@ -117,15 +120,22 @@ func ifstmt() *Node {
 		node.cond = unknown
 	}
 	expect("{")
-	node.then = stmt()
-	expect("}")
+	node.then = block()
 	if consume("else") {
 		if consume("if") {
 			node.els = ifstmt()
-		} else if consume("{") {
-			node.els = stmt()
-			expect("}")
+		} else {
+			expect("{")
+			node.els = block()
 		}
+	}
+	return node
+}
+
+func block() *Node {
+	node := &Node{kind: ND_BLOCK}
+	for !consume("}") {
+		node.body = append(node.body, stmt())
 	}
 	return node
 }

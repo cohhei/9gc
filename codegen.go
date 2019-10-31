@@ -86,6 +86,10 @@ func gen(node *Node) {
 		gen(node.inc)
 		fmt.Printf("  jmp .L.begin.%d\n", s)
 		fmt.Printf(".L.end.%d:\n", s)
+	case ND_BLOCK:
+		for _, n := range node.body {
+			gen(n)
+		}
 	}
 }
 

@@ -109,5 +109,14 @@ if z:=x+y; z==3 {
 }
 return -1
 "
+try 7 "
+n := 0
+for i := 0; i < 5; i++ {
+  n++
+  if i == 1 { n++ }
+  if i == 3 { n++ }
+}
+return n
+"
 
 echo OK

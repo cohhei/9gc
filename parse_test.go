@@ -70,8 +70,11 @@ func TestParse(t *testing.T) {
 						rhs:  &Node{kind: ND_NUM, val: 1},
 					},
 					then: &Node{
-						kind: ND_RETURN,
-						lhs:  &Node{kind: ND_LVAR, offset: 8},
+						kind: ND_BLOCK,
+						body: []*Node{{
+							kind: ND_RETURN,
+							lhs:  &Node{kind: ND_LVAR, offset: 8},
+						}},
 					},
 					els: &Node{
 						kind: ND_IF,
@@ -81,8 +84,11 @@ func TestParse(t *testing.T) {
 							rhs:  &Node{kind: ND_NUM, val: 2},
 						},
 						then: &Node{
-							kind: ND_RETURN,
-							lhs:  &Node{kind: ND_SUB, lhs: &Node{kind: ND_NUM, val: 0}, rhs: &Node{kind: ND_NUM, val: 1}},
+							kind: ND_BLOCK,
+							body: []*Node{{
+								kind: ND_RETURN,
+								lhs:  &Node{kind: ND_SUB, lhs: &Node{kind: ND_NUM, val: 0}, rhs: &Node{kind: ND_NUM, val: 1}},
+							}},
 						},
 					},
 				},
@@ -102,7 +108,7 @@ func TestParse(t *testing.T) {
 					init: &Node{kind: ND_ASSIGN, lhs: &Node{kind: ND_LVAR, offset: 8}, rhs: &Node{kind: ND_NUM, val: 1}},
 					cond: &Node{kind: ND_LT, lhs: &Node{kind: ND_LVAR, offset: 8}, rhs: &Node{kind: ND_NUM, val: 10}},
 					inc:  &Node{kind: ND_INC, lhs: &Node{kind: ND_LVAR, offset: 8}},
-					then: &Node{kind: ND_NUM, val: 1},
+					then: &Node{kind: ND_BLOCK, body: []*Node{{kind: ND_NUM, val: 1}}},
 				},
 			},
 		},
@@ -113,7 +119,7 @@ func TestParse(t *testing.T) {
 				{
 					kind: ND_FOR,
 					cond: &Node{kind: ND_LT, lhs: &Node{kind: ND_LVAR, offset: 8}, rhs: &Node{kind: ND_NUM, val: 10}},
-					then: &Node{kind: ND_NUM, val: 1},
+					then: &Node{kind: ND_BLOCK, body: []*Node{{kind: ND_NUM, val: 1}}},
 				},
 			},
 		},
@@ -123,7 +129,7 @@ func TestParse(t *testing.T) {
 			expected: []*Node{
 				{
 					kind: ND_FOR,
-					then: &Node{kind: ND_DEC, lhs: &Node{kind: ND_LVAR, offset: 8}},
+					then: &Node{kind: ND_BLOCK, body: []*Node{{kind: ND_DEC, lhs: &Node{kind: ND_LVAR, offset: 8}}}},
 				},
 			},
 		},
