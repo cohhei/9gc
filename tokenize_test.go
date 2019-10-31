@@ -79,9 +79,13 @@ func TestTokenize(t *testing.T) {
 			},
 		},
 		{
-			"if a==1 { return a } else { return 0 }",
+			"if a := 0; a==1 { return a } else { return 0 }",
 			[]*Token{
 				{"if", 2, 0, TK_RESERVED, nil},
+				{"a", 1, 0, TK_IDENT, nil},
+				{":=", 2, 0, TK_RESERVED, nil},
+				{"0", 1, 0, TK_NUM, nil},
+				{";", 1, 0, TK_RESERVED, nil},
 				{"a", 1, 0, TK_IDENT, nil},
 				{"==", 2, 0, TK_RESERVED, nil},
 				{"1", 1, 1, TK_NUM, nil},

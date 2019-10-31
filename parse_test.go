@@ -59,10 +59,11 @@ func TestParse(t *testing.T) {
 		},
 		{
 			desc:  "IfStatements",
-			input: "if a==1 { return a } else if a == 2 { return -1 }; return 100",
+			input: "if a := 0; a==1 { return a } else if a == 2 { return -1 }; return 100",
 			expected: []*Node{
 				{
 					kind: ND_IF,
+					init: &Node{kind: ND_ASSIGN, lhs: &Node{kind: ND_LVAR, offset: 8}, rhs: &Node{kind: ND_NUM, val: 0}},
 					cond: &Node{
 						kind: ND_EQ,
 						lhs:  &Node{kind: ND_LVAR, offset: 8},

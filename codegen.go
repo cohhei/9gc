@@ -59,6 +59,7 @@ func gen(node *Node) {
 		fmt.Printf("  sub rdi, 1\n")
 		fmt.Printf("  mov [rax], rdi\n")
 	case ND_IF:
+		gen(node.init)
 		gen(node.cond)
 		s := seq()
 		fmt.Printf("  pop rax\n")

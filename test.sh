@@ -102,5 +102,12 @@ for i > 1 {
 }
 return i
 "
+try 3 "
+x=1;y=2
+if z:=x+y; z==3 {
+  return z
+}
+return -1
+"
 
 echo OK

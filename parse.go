@@ -59,7 +59,7 @@ var code []*Node
 
 func assign() *Node {
 	node := equality()
-	if consume("=") {
+	if consume("=") || consume(":=") {
 		node = newNode(ND_ASSIGN, node, assign())
 	}
 	return node
@@ -108,9 +108,13 @@ func stmt() *Node {
 }
 
 func ifstmt() *Node {
-	node := &Node{
-		kind: ND_IF,
-		cond: expr(),
+	node := &Node{kind: ND_IF}
+	unknown := expr()
+	if consume(";") { // if i:=0; i<N {}
+		node.init = unknown
+		node.cond = expr()
+	} else { // if i<N {}
+		node.cond = unknown
 	}
 	expect("{")
 	node.then = stmt()
