@@ -29,18 +29,22 @@ type Token struct {
 var token *Token
 
 type LVar struct {
-	next   *LVar
 	name   string
 	len    int // Length of the name
 	offset int // Offset from RBP
 }
 
-var locals *LVar // Local variables
+type LVarList struct {
+	next *LVarList
+	lvar *LVar
+}
+
+var locals *LVarList // Local variables
 
 func (t *Token) findLVar() *LVar {
 	for v := locals; v != nil; v = v.next {
-		if v.len == t.len && t.str == v.name {
-			return v
+		if v.lvar.len == t.len && t.str == v.lvar.name {
+			return v.lvar
 		}
 	}
 	return nil
@@ -126,7 +130,7 @@ func tokenize(str string) error {
 			continue
 		}
 
-		if strings.Contains("+-*/()<>;={}", str[0:1]) {
+		if strings.Contains("+-*/()<>;={},", str[0:1]) {
 			cur = cur.newToken(TK_RESERVED, str[:1], 1)
 			str = next(str)
 			continue
@@ -172,7 +176,7 @@ func isSpace(s byte) bool {
 }
 
 var keywords = []string{
-	"return", "if", "else", "for",
+	"return", "if", "else", "for", "func",
 }
 
 func startWithReserved(str string) string {
