@@ -1,7 +1,11 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+)
 
+var argreg = []string{"rdi", "rsi", "rdx", "rcx", "r8", "r9"}
+var funcname string
 var label int
 
 func seq() int {
@@ -10,97 +14,146 @@ func seq() int {
 	return s
 }
 func genLval(node *Node) {
-	if node.kind != ND_LVAR {
+	if node.Kind != ND_LVAR {
 		panic("Not valiable")
 	}
 
 	fmt.Printf("  mov rax, rbp\n")
-	fmt.Printf("  sub rax, %d\n", node.offset)
+	fmt.Printf("  sub rax, %d\n", node.LVar.Offset)
 	fmt.Printf("  push rax\n")
 }
+
+func codegen(code []*Node) {
+	fmt.Printf(".intel_syntax noprefix\n")
+	var offset int
+	for _, n := range code {
+		switch n.Kind {
+		case ND_FUNC:
+			fmt.Printf(".global %s\n", n.FunctionName)
+			fmt.Printf("%s:\n", n.FunctionName)
+			funcname = n.FunctionName
+
+			for _, a := range n.Args {
+				offset += 8
+				a.LVar.Offset = offset
+			}
+			for l := n.Locals; l != nil; l = l.Next {
+				offset += 8
+				l.LVar.Offset = offset
+			}
+			fmt.Printf("  push rbp\n")
+			fmt.Printf("  mov rbp, rsp\n")
+			fmt.Printf("  sub rsp, %d\n", offset)
+			for i, a := range n.Args {
+				fmt.Printf("  mov [rbp-%d], %s\n", a.LVar.Offset, argreg[i])
+			}
+
+			gen(n.Block)
+
+			fmt.Printf(".L.return.%s:\n", funcname)
+			fmt.Printf("  mov rsp, rbp\n")
+			fmt.Printf("  pop rbp\n")
+			fmt.Printf("  ret\n")
+		default:
+			panic("expected declaration")
+		}
+	}
+}
+
 func gen(node *Node) {
 	if node == nil {
 		return
 	}
-	switch node.kind {
+	switch node.Kind {
 	case ND_NUM:
-		fmt.Printf("  push %d\n", node.val)
+		fmt.Printf("  push %d\n", node.Val)
 	case ND_LVAR:
 		genLval(node)
 		fmt.Printf("  pop rax\n")
 		fmt.Printf("  mov rax, [rax]\n")
 		fmt.Printf("  push rax\n")
 	case ND_ASSIGN:
-		genLval(node.lhs)
-		gen(node.rhs)
+		genLval(node.Lhs)
+		gen(node.Rhs)
 
 		fmt.Printf("  pop rdi\n")
 		fmt.Printf("  pop rax\n")
 		fmt.Printf("  mov [rax], rdi\n")
 		fmt.Printf("  push rdi\n")
 	case ND_RETURN:
-		gen(node.lhs)
-		fmt.Printf("  pop rax\n")
-		fmt.Printf("  mov rsp, rbp\n")
-		fmt.Printf("  pop rbp\n")
-		fmt.Printf("  ret\n")
+		if node.Lhs != nil {
+			gen(node.Lhs)
+			fmt.Printf("  pop rax\n")
+		}
+		fmt.Printf("  jmp .L.return.%s\n", funcname)
 	case ND_ADD, ND_SUB, ND_MUL, ND_DIV, ND_EQ, ND_NE, ND_LT, ND_LE:
 		genBinary(node)
 	case ND_INC:
-		genLval(node.lhs)
+		genLval(node.Lhs)
 		fmt.Printf("  pop rax\n")
 		fmt.Printf("  mov rdi, [rax]\n")
 		fmt.Printf("  add rdi, 1\n")
 		fmt.Printf("  mov [rax], rdi\n")
 	case ND_DEC:
-		genLval((node.lhs))
+		genLval((node.Lhs))
 		fmt.Printf("  pop rax\n")
 		fmt.Printf("  mov rdi, [rax]\n")
 		fmt.Printf("  sub rdi, 1\n")
 		fmt.Printf("  mov [rax], rdi\n")
 	case ND_IF:
-		gen(node.init)
-		gen(node.cond)
+		gen(node.Init)
+		gen(node.Cond)
 		s := seq()
 		fmt.Printf("  pop rax\n")
 		fmt.Printf("  cmp rax, 0\n")
-		if node.els != nil {
+		if node.Els != nil {
 			fmt.Printf("  je .L.else.%d\n", s)
-			gen(node.then)
+			gen(node.Then)
 			fmt.Printf(".L.else.%d:\n", s)
-			gen(node.els)
+			gen(node.Els)
 		} else {
 			fmt.Printf("  je .L.end.%d\n", s)
-			gen(node.then)
+			gen(node.Then)
 		}
 		fmt.Printf(".L.end.%d:\n", s)
 	case ND_FOR:
-		gen(node.init)
+		gen(node.Init)
 		s := seq()
 		fmt.Printf(".L.begin.%d:\n", s)
-		gen(node.cond)
+		gen(node.Cond)
 		fmt.Printf("  pop rax\n")
 		fmt.Printf("  cmp rax, 0\n")
 		fmt.Printf("  je .L.end.%d\n", s)
-		gen(node.then)
-		gen(node.inc)
+		gen(node.Then)
+		gen(node.Inc)
 		fmt.Printf("  jmp .L.begin.%d\n", s)
 		fmt.Printf(".L.end.%d:\n", s)
 	case ND_BLOCK:
-		for _, n := range node.body {
+		for _, n := range node.Body {
 			gen(n)
 		}
+	case ND_FUNCALL:
+		var nargs int
+		for _, a := range node.Args {
+			gen(a)
+			nargs++
+		}
+		for i := nargs - 1; i >= 0; i-- {
+			fmt.Printf("  pop %s\n", argreg[i])
+		}
+		fmt.Printf("  call %s\n", node.FunctionName)
+		fmt.Printf("  push rax\n")
 	}
 }
 
 func genBinary(node *Node) {
-	gen(node.lhs)
-	gen(node.rhs)
+	gen(node.Lhs)
+	gen(node.Rhs)
 
 	fmt.Printf("  pop rdi\n")
 	fmt.Printf("  pop rax\n")
 
-	switch node.kind {
+	switch node.Kind {
 	case ND_ADD:
 		fmt.Printf("  add rax, rdi\n")
 	case ND_SUB:
