@@ -1,10 +1,9 @@
 package main
 
 import (
-	"fmt"
-	"reflect"
-	"strings"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestParse(t *testing.T) {
@@ -18,40 +17,40 @@ func TestParse(t *testing.T) {
 			input: "a=18;triple=3;return a*triple;",
 			expected: []*Node{
 				&Node{
-					kind: ND_ASSIGN,
-					lhs: &Node{
-						kind:   ND_LVAR,
-						offset: 8,
+					Kind: ND_ASSIGN,
+					Lhs: &Node{
+						Kind: ND_LVAR,
+						LVar: &LVar{"a", 1, 0},
 					},
-					rhs: &Node{
-						kind: ND_NUM,
-						val:  18,
-					},
-				},
-
-				&Node{
-					kind: ND_ASSIGN,
-					lhs: &Node{
-						kind:   ND_LVAR,
-						offset: 16,
-					},
-					rhs: &Node{
-						kind: ND_NUM,
-						val:  3,
+					Rhs: &Node{
+						Kind: ND_NUM,
+						Val:  18,
 					},
 				},
 
 				&Node{
-					kind: ND_RETURN,
-					lhs: &Node{
-						kind: ND_MUL,
-						lhs: &Node{
-							kind:   ND_LVAR,
-							offset: 8,
+					Kind: ND_ASSIGN,
+					Lhs: &Node{
+						Kind: ND_LVAR,
+						LVar: &LVar{"triple", 6, 0},
+					},
+					Rhs: &Node{
+						Kind: ND_NUM,
+						Val:  3,
+					},
+				},
+
+				&Node{
+					Kind: ND_RETURN,
+					Lhs: &Node{
+						Kind: ND_MUL,
+						Lhs: &Node{
+							Kind: ND_LVAR,
+							LVar: &LVar{"a", 1, 0},
 						},
-						rhs: &Node{
-							kind:   ND_LVAR,
-							offset: 16,
+						Rhs: &Node{
+							Kind: ND_LVAR,
+							LVar: &LVar{"triple", 6, 0},
 						},
 					},
 				},
@@ -62,40 +61,40 @@ func TestParse(t *testing.T) {
 			input: "if a := 0; a==1 { return a } else if a == 2 { return -1 }; return 100",
 			expected: []*Node{
 				{
-					kind: ND_IF,
-					init: &Node{kind: ND_ASSIGN, lhs: &Node{kind: ND_LVAR, offset: 8}, rhs: &Node{kind: ND_NUM, val: 0}},
-					cond: &Node{
-						kind: ND_EQ,
-						lhs:  &Node{kind: ND_LVAR, offset: 8},
-						rhs:  &Node{kind: ND_NUM, val: 1},
+					Kind: ND_IF,
+					Init: &Node{Kind: ND_ASSIGN, Lhs: &Node{Kind: ND_LVAR, LVar: &LVar{"a", 1, 0}}, Rhs: &Node{Kind: ND_NUM, Val: 0}},
+					Cond: &Node{
+						Kind: ND_EQ,
+						Lhs:  &Node{Kind: ND_LVAR, LVar: &LVar{"a", 1, 0}},
+						Rhs:  &Node{Kind: ND_NUM, Val: 1},
 					},
-					then: &Node{
-						kind: ND_BLOCK,
-						body: []*Node{{
-							kind: ND_RETURN,
-							lhs:  &Node{kind: ND_LVAR, offset: 8},
+					Then: &Node{
+						Kind: ND_BLOCK,
+						Body: []*Node{{
+							Kind: ND_RETURN,
+							Lhs:  &Node{Kind: ND_LVAR, LVar: &LVar{"a", 1, 0}},
 						}},
 					},
-					els: &Node{
-						kind: ND_IF,
-						cond: &Node{
-							kind: ND_EQ,
-							lhs:  &Node{kind: ND_LVAR, offset: 8},
-							rhs:  &Node{kind: ND_NUM, val: 2},
+					Els: &Node{
+						Kind: ND_IF,
+						Cond: &Node{
+							Kind: ND_EQ,
+							Lhs:  &Node{Kind: ND_LVAR, LVar: &LVar{"a", 1, 0}},
+							Rhs:  &Node{Kind: ND_NUM, Val: 2},
 						},
-						then: &Node{
-							kind: ND_BLOCK,
-							body: []*Node{{
-								kind: ND_RETURN,
-								lhs:  &Node{kind: ND_SUB, lhs: &Node{kind: ND_NUM, val: 0}, rhs: &Node{kind: ND_NUM, val: 1}},
+						Then: &Node{
+							Kind: ND_BLOCK,
+							Body: []*Node{{
+								Kind: ND_RETURN,
+								Lhs:  &Node{Kind: ND_SUB, Lhs: &Node{Kind: ND_NUM, Val: 0}, Rhs: &Node{Kind: ND_NUM, Val: 1}},
 							}},
 						},
 					},
 				},
 
 				&Node{
-					kind: ND_RETURN,
-					lhs:  &Node{kind: ND_NUM, val: 100},
+					Kind: ND_RETURN,
+					Lhs:  &Node{Kind: ND_NUM, Val: 100},
 				},
 			},
 		},
@@ -104,11 +103,11 @@ func TestParse(t *testing.T) {
 			input: "for i = 1; i < 10; i++ { 1 }",
 			expected: []*Node{
 				{
-					kind: ND_FOR,
-					init: &Node{kind: ND_ASSIGN, lhs: &Node{kind: ND_LVAR, offset: 8}, rhs: &Node{kind: ND_NUM, val: 1}},
-					cond: &Node{kind: ND_LT, lhs: &Node{kind: ND_LVAR, offset: 8}, rhs: &Node{kind: ND_NUM, val: 10}},
-					inc:  &Node{kind: ND_INC, lhs: &Node{kind: ND_LVAR, offset: 8}},
-					then: &Node{kind: ND_BLOCK, body: []*Node{{kind: ND_NUM, val: 1}}},
+					Kind: ND_FOR,
+					Init: &Node{Kind: ND_ASSIGN, Lhs: &Node{Kind: ND_LVAR, LVar: &LVar{"i", 1, 0}}, Rhs: &Node{Kind: ND_NUM, Val: 1}},
+					Cond: &Node{Kind: ND_LT, Lhs: &Node{Kind: ND_LVAR, LVar: &LVar{"i", 1, 0}}, Rhs: &Node{Kind: ND_NUM, Val: 10}},
+					Inc:  &Node{Kind: ND_INC, Lhs: &Node{Kind: ND_LVAR, LVar: &LVar{"i", 1, 0}}},
+					Then: &Node{Kind: ND_BLOCK, Body: []*Node{{Kind: ND_NUM, Val: 1}}},
 				},
 			},
 		},
@@ -117,9 +116,9 @@ func TestParse(t *testing.T) {
 			input: "for i < 10 { 1 }",
 			expected: []*Node{
 				{
-					kind: ND_FOR,
-					cond: &Node{kind: ND_LT, lhs: &Node{kind: ND_LVAR, offset: 8}, rhs: &Node{kind: ND_NUM, val: 10}},
-					then: &Node{kind: ND_BLOCK, body: []*Node{{kind: ND_NUM, val: 1}}},
+					Kind: ND_FOR,
+					Cond: &Node{Kind: ND_LT, Lhs: &Node{Kind: ND_LVAR, LVar: &LVar{"i", 1, 0}}, Rhs: &Node{Kind: ND_NUM, Val: 10}},
+					Then: &Node{Kind: ND_BLOCK, Body: []*Node{{Kind: ND_NUM, Val: 1}}},
 				},
 			},
 		},
@@ -128,8 +127,57 @@ func TestParse(t *testing.T) {
 			input: "for { i-- }",
 			expected: []*Node{
 				{
-					kind: ND_FOR,
-					then: &Node{kind: ND_BLOCK, body: []*Node{{kind: ND_DEC, lhs: &Node{kind: ND_LVAR, offset: 8}}}},
+					Kind: ND_FOR,
+					Then: &Node{Kind: ND_BLOCK, Body: []*Node{{Kind: ND_DEC, Lhs: &Node{Kind: ND_LVAR, LVar: &LVar{"i", 1, 0}}}}},
+				},
+			},
+		},
+		{
+			desc:  "Function",
+			input: "func add(a,b) { return a + b } func main() { return add(1,2) }",
+			expected: []*Node{
+				{
+					Kind:         ND_FUNC,
+					FunctionName: "add",
+					Args: []*Node{
+						{Kind: ND_LVAR, LVar: &LVar{"a", 1, 0}}, {Kind: ND_LVAR, LVar: &LVar{"b", 1, 0}},
+					},
+					Locals: &LVarList{
+						LVar: &LVar{"b", 1, 0},
+						Next: &LVarList{
+							LVar: &LVar{"a", 1, 0},
+						},
+					},
+					Block: &Node{
+						Kind: ND_BLOCK, Body: []*Node{
+							{
+								Kind: ND_RETURN,
+								Lhs: &Node{
+									Kind: ND_ADD,
+									Lhs:  &Node{Kind: ND_LVAR, LVar: &LVar{"a", 1, 0}},
+									Rhs:  &Node{Kind: ND_LVAR, LVar: &LVar{"b", 1, 0}},
+								},
+							},
+						},
+					},
+				},
+				{
+					Kind:         ND_FUNC,
+					FunctionName: "main",
+					Args:         []*Node{},
+					Block: &Node{
+						Kind: ND_BLOCK, Body: []*Node{
+							{
+								Kind: ND_RETURN,
+								Lhs: &Node{
+									Kind: ND_FUNCALL, FunctionName: "add",
+									Args: []*Node{
+										{Kind: ND_NUM, Val: 1}, {Kind: ND_NUM, Val: 2},
+									},
+								},
+							},
+						},
+					},
 				},
 			},
 		},
@@ -142,34 +190,10 @@ func TestParse(t *testing.T) {
 			}
 			program()
 			actual := code
-			if !reflect.DeepEqual(actual, tC.expected) {
-				t.Fatalf("Parse '%s' failed.\nactual:\n%+v\nexpected:\n%+v\n", tC.input, showNodes(actual), showNodes(tC.expected))
+
+			if diff := cmp.Diff(actual, tC.expected); diff != "" {
+				t.Errorf("Hogefunc differs: (-got +want)\n%s", diff)
 			}
 		})
 	}
-}
-
-func showNodes(nodes []*Node) string {
-	strs := make([]string, len(nodes))
-	for i, n := range nodes {
-		strs[i] = showHands(n, "\t")
-	}
-	return strings.Join(strs, "\n")
-}
-
-func showHands(node *Node, tabs string) string {
-	str := fmt.Sprintf("%s%+v", tabs, node)
-	if node.lhs != nil {
-		str = fmt.Sprintf("%s\n%s", str, showHands(node.lhs, tabs+"\t"))
-	}
-	if node.rhs != nil {
-		str = fmt.Sprintf("%s\n%s", str, showHands(node.rhs, tabs+"\t"))
-	}
-	if node.cond != nil {
-		str = fmt.Sprintf("%s\n%s", str, showHands(node.cond, tabs+"\t"))
-	}
-	if node.then != nil {
-		str = fmt.Sprintf("%s\n%s", str, showHands(node.then, tabs+"\t"))
-	}
-	return str
 }

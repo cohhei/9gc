@@ -29,22 +29,22 @@ type Token struct {
 var token *Token
 
 type LVar struct {
-	name   string
-	len    int // Length of the name
-	offset int // Offset from RBP
+	Name   string
+	Len    int // Length of the name
+	Offset int // Offset from RBP
 }
 
 type LVarList struct {
-	next *LVarList
-	lvar *LVar
+	Next *LVarList
+	LVar *LVar
 }
 
 var locals *LVarList // Local variables
 
 func (t *Token) findLVar() *LVar {
-	for v := locals; v != nil; v = v.next {
-		if v.lvar.len == t.len && t.str == v.lvar.name {
-			return v.lvar
+	for v := locals; v != nil; v = v.Next {
+		if v.LVar.Len == t.len && t.str == v.LVar.Name {
+			return v.LVar
 		}
 	}
 	return nil

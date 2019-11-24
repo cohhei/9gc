@@ -4,57 +4,67 @@ package main
 type NodeKind int
 
 const (
-	ND_ADD    = iota // +
-	ND_SUB           // -
-	ND_MUL           // *
-	ND_DIV           // /
-	ND_ASSIGN        // =
-	ND_LVAR          // local variable
-	ND_EQ            // ==
-	ND_NE            // !=
-	ND_LT            // <
-	ND_LE            // <=
-	ND_INC           // ++
-	ND_DEC           // --
-	ND_NUM           // number
-	ND_RETURN        // return
-	ND_IF            // if
-	ND_FOR           // for
-	ND_BLOCK         // { ... }
+	ND_ADD     = iota // +
+	ND_SUB            // -
+	ND_MUL            // *
+	ND_DIV            // /
+	ND_ASSIGN         // =
+	ND_LVAR           // local variable
+	ND_EQ             // ==
+	ND_NE             // !=
+	ND_LT             // <
+	ND_LE             // <=
+	ND_INC            // ++
+	ND_DEC            // --
+	ND_NUM            // number
+	ND_RETURN         // return
+	ND_IF             // if
+	ND_FOR            // for
+	ND_BLOCK          // { ... }
+	ND_FUNCALL        // Function call
+	ND_FUNC           // Function
 )
 
 // Node is a type for the abstract syntax tree
 type Node struct {
-	kind   NodeKind // The kind of the node
-	lhs    *Node    // left-hand side
-	rhs    *Node    // right-hand side
-	val    int      // The value of ND_NUM
-	offset int      // The velue of ND_LVAR
+	Kind NodeKind // The kind of the node
+	Lhs  *Node    // left-hand side
+	Rhs  *Node    // right-hand side
+	Val  int      // The value of ND_NUM
 
 	// "if" and "for"
-	cond *Node
-	then *Node
-	els  *Node
-	init *Node
-	inc  *Node
+	Cond *Node
+	Then *Node
+	Els  *Node
+	Init *Node
+	Inc  *Node
 
 	// block
-	body []*Node
+	Body []*Node
+
+	// function
+	FunctionName string
+	Args         []*Node
+	Locals       *LVarList
+	Block        *Node
+
+	// var
+	LVar *LVar
 }
 
 func newNode(kind NodeKind, lhs *Node, rhs *Node) *Node {
 	node := &Node{
-		kind: kind,
-		lhs:  lhs,
-		rhs:  rhs,
+		Kind: kind,
+		Lhs:  lhs,
+		Rhs:  rhs,
 	}
 	return node
 }
 
 func newNodeNum(val int) *Node {
 	node := &Node{
-		kind: ND_NUM,
-		val:  val,
+		Kind: ND_NUM,
+		Val:  val,
 	}
 	return node
 }
@@ -78,27 +88,27 @@ func stmt() *Node {
 
 	if consume("return") {
 		node = &Node{
-			kind: ND_RETURN,
-			lhs:  expr(),
+			Kind: ND_RETURN,
+			Lhs:  expr(),
 		}
 	} else if consume("if") {
 		node = ifstmt()
 	} else if consume("for") {
-		node = &Node{kind: ND_FOR}
+		node = &Node{Kind: ND_FOR}
 		if consume("{") { // for {}
-			node.then = block()
+			node.Then = block()
 		} else {
 			unknown := expr()
 			if consume(";") { // for i=0;i<N;i++ {}
-				node.init = unknown
-				node.cond = expr()
+				node.Init = unknown
+				node.Cond = expr()
 				expect(";")
-				node.inc = expr()
+				node.Inc = expr()
 			} else { // for i<N {}
-				node.cond = unknown
+				node.Cond = unknown
 			}
 			expect("{")
-			node.then = block()
+			node.Then = block()
 		}
 	} else if consume("{") {
 		node = block()
@@ -111,37 +121,56 @@ func stmt() *Node {
 }
 
 func ifstmt() *Node {
-	node := &Node{kind: ND_IF}
+	node := &Node{Kind: ND_IF}
 	unknown := expr()
 	if consume(";") { // if i:=0; i<N {}
-		node.init = unknown
-		node.cond = expr()
+		node.Init = unknown
+		node.Cond = expr()
 	} else { // if i<N {}
-		node.cond = unknown
+		node.Cond = unknown
 	}
 	expect("{")
-	node.then = block()
+	node.Then = block()
 	if consume("else") {
 		if consume("if") {
-			node.els = ifstmt()
+			node.Els = ifstmt()
 		} else {
 			expect("{")
-			node.els = block()
+			node.Els = block()
 		}
 	}
 	return node
 }
 
 func block() *Node {
-	node := &Node{kind: ND_BLOCK}
+	node := &Node{Kind: ND_BLOCK}
 	for !consume("}") {
-		node.body = append(node.body, stmt())
+		node.Body = append(node.Body, stmt())
 	}
 	return node
 }
 
 func program() {
 	for !token.atEof() {
+		if consume("func") {
+			locals = nil
+			tok := consumeIdent()
+			if tok == nil {
+				panic("expected 'IDENT'")
+			}
+			node := &Node{
+				Kind:         ND_FUNC,
+				FunctionName: tok.str,
+				Args:         definedArgs(),
+			}
+			expect("{")
+			// locals = nil
+			node.Block = block()
+			node.Locals = locals
+			code = append(code, node)
+			continue
+		}
+
 		code = append(code, stmt())
 	}
 }
@@ -219,13 +248,13 @@ func postfix() *Node {
 	node := primary()
 	if consume("++") {
 		node = &Node{
-			kind: ND_INC,
-			lhs:  node,
+			Kind: ND_INC,
+			Lhs:  node,
 		}
 	} else if consume("--") {
 		node = &Node{
-			kind: ND_DEC,
-			lhs:  node,
+			Kind: ND_DEC,
+			Lhs:  node,
 		}
 	}
 	return node
@@ -241,20 +270,33 @@ func primary() *Node {
 
 	if tok := consumeIdent(); tok != nil {
 		var node Node
-		node.kind = ND_LVAR
+
+		// Function call
+		if consume("(") {
+			node = Node{
+				Kind:         ND_FUNCALL,
+				FunctionName: tok.str,
+				Args:         args(),
+			}
+			return &node
+		}
+
+		// Variables
+		node.Kind = ND_LVAR
 
 		lvar := tok.findLVar()
 		if lvar != nil {
-			node.offset = lvar.offset
+			node.LVar = lvar
 		} else {
 			lvar := &LVar{
-				next:   locals,
-				name:   tok.str,
-				len:    tok.len,
-				offset: getOffset(),
+				Name: tok.str,
+				Len:  tok.len,
 			}
-			node.offset = lvar.offset
-			locals = lvar
+			locals = &LVarList{
+				Next: locals,
+				LVar: lvar,
+			}
+			node.LVar = lvar
 		}
 		return &node
 	}
@@ -267,9 +309,23 @@ func primary() *Node {
 	return newNodeNum(val)
 }
 
-func getOffset() int {
-	if locals == nil {
-		return 8
+func args() []*Node {
+	args := []*Node{}
+	for !consume(")") {
+		args = append(args, assign())
+		if consume(",") {
+			continue
+		}
 	}
-	return locals.offset + 8
+	return args
+}
+
+func definedArgs() []*Node {
+	expect("(")
+	args := []*Node{}
+	for !consume(")") {
+		args = append(args, primary())
+		consume(",")
+	}
+	return args
 }
