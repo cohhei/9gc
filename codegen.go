@@ -141,7 +141,22 @@ func gen(node *Node) {
 		for i := nargs - 1; i >= 0; i-- {
 			fmt.Printf("  pop %s\n", argreg[i])
 		}
+		// We need to align RSP to a 16 byte boundary before
+		// calling a function because it is an ABI requirement.
+		// RAX is set to 0 for variadic function.
+		s := seq()
+		fmt.Printf("  mov rax, rsp\n")
+		fmt.Printf("  and rax, 15\n")
+		fmt.Printf("  jnz .L.call.%d\n", s)
+		fmt.Printf("  mov rax, 0\n")
 		fmt.Printf("  call %s\n", node.FunctionName)
+		fmt.Printf("  jmp .L.end.%d\n", s)
+		fmt.Printf(".L.call.%d:\n", s)
+		fmt.Printf("  sub rsp, 8\n")
+		fmt.Printf("  mov rax, 0\n")
+		fmt.Printf("  call %s\n", node.FunctionName)
+		fmt.Printf("  add rsp, 8\n")
+		fmt.Printf(".L.end.%d:\n", s)
 		fmt.Printf("  push rax\n")
 	}
 }
