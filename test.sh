@@ -156,5 +156,12 @@ func fib(x) {
   return fib(x-1) + fib(x-2)
 }
 '
+try 3 '
+func main() {
+  x = 3
+  y = &x
+  return *y
+}
+'
 
 echo OK

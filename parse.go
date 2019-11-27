@@ -23,6 +23,8 @@ const (
 	ND_BLOCK          // { ... }
 	ND_FUNCALL        // Function call
 	ND_FUNC           // Function
+	ND_ADDR           // &
+	ND_DEREF          // *
 )
 
 // Node is a type for the abstract syntax tree
@@ -240,6 +242,10 @@ func unary() *Node {
 		return unary()
 	} else if consume("-") {
 		return newNode(ND_SUB, newNodeNum(0), unary())
+	} else if consume("&") {
+		return newNode(ND_ADDR, unary(), nil)
+	} else if consume("*") {
+		return newNode(ND_DEREF, unary(), nil)
 	}
 	return postfix()
 }

@@ -130,7 +130,7 @@ func tokenize(str string) error {
 			continue
 		}
 
-		if strings.Contains("+-*/()<>;={},", str[0:1]) {
+		if strings.Contains("+-*/()<>;={},&", str[0:1]) {
 			cur = cur.newToken(TK_RESERVED, str[:1], 1)
 			str = next(str)
 			continue

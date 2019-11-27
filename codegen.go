@@ -158,6 +158,13 @@ func gen(node *Node) {
 		fmt.Printf("  add rsp, 8\n")
 		fmt.Printf(".L.end.%d:\n", s)
 		fmt.Printf("  push rax\n")
+	case ND_ADDR:
+		genLval(node.Lhs)
+	case ND_DEREF:
+		gen(node.Lhs)
+		fmt.Printf("  pop rax\n")
+		fmt.Printf("  mov rax, [rax]\n")
+		fmt.Printf("  push rax\n")
 	}
 }
 

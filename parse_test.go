@@ -181,6 +181,14 @@ func TestParse(t *testing.T) {
 				},
 			},
 		},
+		{
+			desc:  "Address and dereference operator",
+			input: "&x;*x",
+			expected: []*Node{
+				{Kind: ND_ADDR, Lhs: &Node{Kind: ND_LVAR, LVar: &LVar{"x", 1, 0}}},
+				{Kind: ND_DEREF, Lhs: &Node{Kind: ND_LVAR, LVar: &LVar{"x", 1, 0}}},
+			},
+		},
 	}
 	for _, tC := range testCases {
 		t.Run(tC.desc, func(t *testing.T) {
