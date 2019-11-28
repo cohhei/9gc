@@ -176,13 +176,14 @@ func isSpace(s byte) bool {
 }
 
 var keywords = []string{
-	"return", "if", "else", "for", "func",
+	"return", "if", "else", "for", "func", "var", "int",
 }
 
 func startWithReserved(str string) string {
 	for _, k := range keywords {
-		len := len(k)
-		if startswitch(str, k) && !isDigit(str[len]) && !isIdent(str[len]) {
+		l := len(k)
+		fmt.Println("str:", str, "k:", k)
+		if startswitch(str, k) && (len(str) == l || !isDigit(str[l]) && !isIdent(str[l])) {
 			return k
 		}
 	}
