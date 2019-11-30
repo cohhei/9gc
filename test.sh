@@ -44,11 +44,11 @@ try 1 "func main() {return 1>=0}"
 try 1 "func main() {return 1>=1}"
 try 0 "func main() {return 1>=2}"
 
-try 2 "func main() {return a=2;}"
-try 10 "func main() {a=2;return c=10}"
-try 99 "func main() {a=1;return z=99}"
-try 32 "func main() {a=1;z=10; return 32}"
-try 57 "func main() {triple=3; nineteen=19;return nineteen*triple}"
+try 2 "func main() {var a int;return a=2;}"
+try 10 "func main() {var a int;var c int;a=2;return c=10}"
+try 99 "func main() {var a int;var z int;a=1;return z=99}"
+try 32 "func main() {var a int;var z int;a=1;z=10; return 32}"
+try 57 "func main() {var triple int;var nineteen int;triple=3; nineteen=19;return nineteen*triple}"
 try 5 "
 func main() {
   return 5
@@ -56,6 +56,8 @@ func main() {
 }"
 try 14 "
 func main() {
+  var a int
+  var b int
   a = 3
   b = 5 * 6 - 8
   return a + b / 2
@@ -63,8 +65,8 @@ func main() {
 "
 try 1 "
 func main() {
-  a = 1
-  b = 4
+  a := 1
+  b := 4
   if a == 1 {
     return a
   }
@@ -73,8 +75,8 @@ func main() {
 "
 try 4 "
 func main() { 
-  a = 1
-  b = 4
+  a := 1
+  b := 4
   if a != 1 {
     return a
   }
@@ -103,8 +105,8 @@ func main() {
 "
 try 10 "
 func main() {
-  j = 0
-  for i = 0; i < 10; i++ {
+  j := 0
+  for i := 0; i < 10; i++ {
     j++
   }
   return j
@@ -112,7 +114,7 @@ func main() {
 "
 try 1 "
 func main() {
-  i = 10
+  i := 10
   for i > 1 {
     i--
   }
@@ -121,7 +123,7 @@ func main() {
 "
 try 3 "
 func main() {
-  x=1;y=2
+  x:=1;y:=2
   if z:=x+y; z==3 {
     return z
   }
@@ -143,7 +145,7 @@ try 3 "
 func main() {
   return add(1, 2)
 }
-func add(a, b) {
+func add(a int, b int) {
   return a + b
 }
 "
@@ -151,15 +153,15 @@ try 89 '
 func main() { 
   return fib(10)
 }
-func fib(x) { 
+func fib(x int) { 
   if x<=1 {return 1}
   return fib(x-1) + fib(x-2)
 }
 '
 try 3 '
 func main() {
-  x = 3
-  y = &x
+  x := 3
+  y := &x
   return *y
 }
 '

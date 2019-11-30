@@ -14,7 +14,7 @@ func TestParse(t *testing.T) {
 	}{
 		{
 			desc:  "LocalVariable",
-			input: "a=18;triple=3;return a*triple;",
+			input: "a:=18;triple:=3;return a*triple;",
 			expected: []*Node{
 				&Node{
 					Kind: ND_ASSIGN,
@@ -100,7 +100,7 @@ func TestParse(t *testing.T) {
 		},
 		{
 			desc:  "ForStatement",
-			input: "for i = 1; i < 10; i++ { 1 }",
+			input: "for i := 1; i < 10; i++ { 1 }",
 			expected: []*Node{
 				{
 					Kind: ND_FOR,
@@ -113,8 +113,9 @@ func TestParse(t *testing.T) {
 		},
 		{
 			desc:  "ForStatement",
-			input: "for i < 10 { 1 }",
+			input: "var i int;for i < 10 { 1 }",
 			expected: []*Node{
+				{Kind: ND_LVAR, LVar: &LVar{"i", 1, 0}},
 				{
 					Kind: ND_FOR,
 					Cond: &Node{Kind: ND_LT, Lhs: &Node{Kind: ND_LVAR, LVar: &LVar{"i", 1, 0}}, Rhs: &Node{Kind: ND_NUM, Val: 10}},
@@ -124,8 +125,9 @@ func TestParse(t *testing.T) {
 		},
 		{
 			desc:  "ForStatement",
-			input: "for { i-- }",
+			input: "var i int;for { i-- }",
 			expected: []*Node{
+				{Kind: ND_LVAR, LVar: &LVar{"i", 1, 0}},
 				{
 					Kind: ND_FOR,
 					Then: &Node{Kind: ND_BLOCK, Body: []*Node{{Kind: ND_DEC, Lhs: &Node{Kind: ND_LVAR, LVar: &LVar{"i", 1, 0}}}}},
@@ -134,7 +136,7 @@ func TestParse(t *testing.T) {
 		},
 		{
 			desc:  "Function",
-			input: "func add(a,b) { return a + b } func main() { return add(1,2) }",
+			input: "func add(a int,b int) { return a + b } func main() { return add(1,2) }",
 			expected: []*Node{
 				{
 					Kind:         ND_FUNC,
@@ -183,8 +185,9 @@ func TestParse(t *testing.T) {
 		},
 		{
 			desc:  "Address and dereference operator",
-			input: "&x;*x",
+			input: "var x int;&x;*x",
 			expected: []*Node{
+				{Kind: ND_LVAR, LVar: &LVar{"x", 1, 0}},
 				{Kind: ND_ADDR, Lhs: &Node{Kind: ND_LVAR, LVar: &LVar{"x", 1, 0}}},
 				{Kind: ND_DEREF, Lhs: &Node{Kind: ND_LVAR, LVar: &LVar{"x", 1, 0}}},
 			},

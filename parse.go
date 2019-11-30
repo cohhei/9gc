@@ -1,5 +1,7 @@
 package main
 
+import "fmt"
+
 // NodeKind is a type for the kind of Node
 type NodeKind int
 
@@ -114,6 +116,19 @@ func stmt() *Node {
 		}
 	} else if consume("{") {
 		node = block()
+	} else if consume("var") {
+		tok := consumeIdent()
+		if tok == nil {
+			panic("expected 'IDENT'")
+		}
+
+		lvar := tok.findLVar()
+		if lvar != nil {
+			panic(fmt.Sprintf("%s redeclared in this block", tok.str))
+		}
+
+		node = newLVarNode(tok.str, tok.len)
+		expect("int")
 	} else {
 		node = expr()
 	}
@@ -166,7 +181,6 @@ func program() {
 				Args:         definedArgs(),
 			}
 			expect("{")
-			// locals = nil
 			node.Block = block()
 			node.Locals = locals
 			code = append(code, node)
@@ -275,11 +289,9 @@ func primary() *Node {
 	}
 
 	if tok := consumeIdent(); tok != nil {
-		var node Node
-
 		// Function call
 		if consume("(") {
-			node = Node{
+			node := Node{
 				Kind:         ND_FUNCALL,
 				FunctionName: tok.str,
 				Args:         args(),
@@ -288,23 +300,20 @@ func primary() *Node {
 		}
 
 		// Variables
-		node.Kind = ND_LVAR
-
 		lvar := tok.findLVar()
 		if lvar != nil {
-			node.LVar = lvar
-		} else {
-			lvar := &LVar{
-				Name: tok.str,
-				Len:  tok.len,
-			}
-			locals = &LVarList{
-				Next: locals,
+			node := &Node{
+				Kind: ND_LVAR,
 				LVar: lvar,
 			}
-			node.LVar = lvar
+			return node
+		} else {
+			if !consume(":=") {
+				panic(fmt.Sprintf("undeclared name: %s", tok.str))
+			}
+			node := newNode(ND_ASSIGN, newLVarNode(tok.str, tok.len), equality())
+			return node
 		}
-		return &node
 	}
 
 	// If not so, it should be a number
@@ -330,8 +339,28 @@ func definedArgs() []*Node {
 	expect("(")
 	args := []*Node{}
 	for !consume(")") {
-		args = append(args, primary())
+		if tok := consumeIdent(); tok != nil {
+			args = append(args, newLVarNode(tok.str, tok.len))
+		}
+		expect("int")
 		consume(",")
 	}
 	return args
+}
+
+func newLVarNode(name string, len int) *Node {
+	node := &Node{
+		Kind: ND_LVAR,
+		LVar: newLVar(name, len),
+	}
+	return node
+}
+
+func newLVar(name string, len int) *LVar {
+	lvar := &LVar{
+		Name: name,
+		Len:  len,
+	}
+	locals = &LVarList{locals, lvar}
+	return lvar
 }

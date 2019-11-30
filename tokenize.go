@@ -182,7 +182,6 @@ var keywords = []string{
 func startWithReserved(str string) string {
 	for _, k := range keywords {
 		l := len(k)
-		fmt.Println("str:", str, "k:", k)
 		if startswitch(str, k) && (len(str) == l || !isDigit(str[l]) && !isIdent(str[l])) {
 			return k
 		}
