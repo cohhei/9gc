@@ -6,32 +6,61 @@ import "fmt"
 type NodeKind int
 
 const (
-	ND_ADD     = iota // +
-	ND_SUB            // -
-	ND_MUL            // *
-	ND_DIV            // /
-	ND_ASSIGN         // =
-	ND_LVAR           // local variable
-	ND_EQ             // ==
-	ND_NE             // !=
-	ND_LT             // <
-	ND_LE             // <=
-	ND_INC            // ++
-	ND_DEC            // --
-	ND_NUM            // number
-	ND_RETURN         // return
-	ND_IF             // if
-	ND_FOR            // for
-	ND_BLOCK          // { ... }
-	ND_FUNCALL        // Function call
-	ND_FUNC           // Function
-	ND_ADDR           // &
-	ND_DEREF          // *
+	ND_ADD     NodeKind = iota // +
+	ND_SUB                     // -
+	ND_MUL                     // *
+	ND_DIV                     // /
+	ND_ASSIGN                  // =
+	ND_LVAR                    // local variable
+	ND_EQ                      // ==
+	ND_NE                      // !=
+	ND_LT                      // <
+	ND_LE                      // <=
+	ND_INC                     // ++
+	ND_DEC                     // --
+	ND_NUM                     // number
+	ND_RETURN                  // return
+	ND_IF                      // if
+	ND_FOR                     // for
+	ND_BLOCK                   // { ... }
+	ND_FUNCALL                 // Function call
+	ND_FUNC                    // Function
+	ND_ADDR                    // &
+	ND_DEREF                   // *
 )
+
+var nodeKindName = map[NodeKind]string{
+	ND_ADD:     "ND_ADD",
+	ND_SUB:     "ND_SUB",
+	ND_MUL:     "ND_MUL",
+	ND_DIV:     "ND_DIV",
+	ND_ASSIGN:  "ND_ASSIGN",
+	ND_LVAR:    "ND_LVAR",
+	ND_EQ:      "ND_EQ",
+	ND_NE:      "ND_NE",
+	ND_LT:      "ND_LT",
+	ND_LE:      "ND_LE",
+	ND_INC:     "ND_INC",
+	ND_DEC:     "ND_DEC",
+	ND_NUM:     "ND_NUM",
+	ND_RETURN:  "ND_RETURN",
+	ND_IF:      "ND_IF",
+	ND_FOR:     "ND_FOR",
+	ND_BLOCK:   "ND_BLOCK",
+	ND_FUNCALL: "ND_FUNCALL",
+	ND_FUNC:    "ND_FUNC",
+	ND_ADDR:    "ND_ADDR",
+	ND_DEREF:   "ND_DEREF",
+}
+
+func (nk NodeKind) String() string {
+	return nodeKindName[nk]
+}
 
 // Node is a type for the abstract syntax tree
 type Node struct {
 	Kind NodeKind // The kind of the node
+	Type *Type    // Type, e.g. int or pointer to int
 	Lhs  *Node    // left-hand side
 	Rhs  *Node    // right-hand side
 	Val  int      // The value of ND_NUM
@@ -93,7 +122,7 @@ func stmt() *Node {
 	if consume("return") {
 		node = &Node{
 			Kind: ND_RETURN,
-			Lhs:  expr(),
+			Lhs:  equality(),
 		}
 	} else if consume("if") {
 		node = ifstmt()
@@ -127,8 +156,7 @@ func stmt() *Node {
 			panic(fmt.Sprintf("%s redeclared in this block", tok.str))
 		}
 
-		node = newLVarNode(tok.str, tok.len)
-		expect("int")
+		node = newLVarNode(tok.str, declarator())
 	} else {
 		node = expr()
 	}
@@ -180,14 +208,17 @@ func program() {
 				FunctionName: tok.str,
 				Args:         definedArgs(),
 			}
-			expect("{")
+			if !consume("{") {
+				node.Type = declarator()
+			}
 			node.Block = block()
 			node.Locals = locals
+			node.addType()
 			code = append(code, node)
 			continue
 		}
 
-		code = append(code, stmt())
+		panic(fmt.Sprintf("expected declaration, found %s", token.str))
 	}
 }
 
@@ -305,13 +336,16 @@ func primary() *Node {
 			node := &Node{
 				Kind: ND_LVAR,
 				LVar: lvar,
+				Type: lvar.Type,
 			}
 			return node
 		} else {
 			if !consume(":=") {
-				panic(fmt.Sprintf("undeclared name: %s", tok.str))
+				panic(fmt.Sprintf("undeclared name: %s %s %s", tok.str, tok.next.str, tok.next.next.str))
 			}
-			node := newNode(ND_ASSIGN, newLVarNode(tok.str, tok.len), equality())
+			rhs := equality()
+			rhs.addType()
+			node := newNode(ND_ASSIGN, newLVarNode(tok.str, rhs.Type), rhs)
 			return node
 		}
 	}
@@ -340,27 +374,36 @@ func definedArgs() []*Node {
 	args := []*Node{}
 	for !consume(")") {
 		if tok := consumeIdent(); tok != nil {
-			args = append(args, newLVarNode(tok.str, tok.len))
+			args = append(args, newLVarNode(tok.str, declarator()))
 		}
-		expect("int")
 		consume(",")
 	}
 	return args
 }
 
-func newLVarNode(name string, len int) *Node {
+func newLVarNode(name string, ty *Type) *Node {
 	node := &Node{
 		Kind: ND_LVAR,
-		LVar: newLVar(name, len),
+		LVar: newLVar(name, ty),
+		Type: ty,
 	}
 	return node
 }
 
-func newLVar(name string, len int) *LVar {
+func newLVar(name string, ty *Type) *LVar {
 	lvar := &LVar{
 		Name: name,
-		Len:  len,
+		Type: ty,
 	}
 	locals = &LVarList{locals, lvar}
 	return lvar
+}
+
+func declarator() *Type {
+	if consume("*") {
+		ty := declarator()
+		return &Type{TY_POINTER, ty}
+	}
+	expect("int")
+	return &Type{TY_INT, nil}
 }

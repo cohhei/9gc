@@ -44,9 +44,9 @@ try 1 "func main() {return 1>=0}"
 try 1 "func main() {return 1>=1}"
 try 0 "func main() {return 1>=2}"
 
-try 2 "func main() {var a int;return a=2;}"
-try 10 "func main() {var a int;var c int;a=2;return c=10}"
-try 99 "func main() {var a int;var z int;a=1;return z=99}"
+try 2 "func main() {var a int;a=2;return a;}"
+try 10 "func main() {var a int;var c int;a=2;c=10return c}"
+try 99 "func main() {var a int;var z int;a=1;z=99;return z}"
 try 32 "func main() {var a int;var z int;a=1;z=10; return 32}"
 try 57 "func main() {var triple int;var nineteen int;triple=3; nineteen=19;return nineteen*triple}"
 try 5 "
@@ -165,5 +165,13 @@ func main() {
   return *y
 }
 '
-
+try 3 '
+func main() {
+  var x int
+  var y *int
+  y = &x;
+  *y = 3
+  return x
+}
+'
 echo OK

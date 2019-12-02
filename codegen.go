@@ -13,13 +13,21 @@ func seq() int {
 	label++
 	return s
 }
-func genLval(node *Node) {
-	if node.Kind != ND_LVAR {
+func genAddr(node *Node) {
+	switch node.Kind {
+	case ND_LVAR:
+		fmt.Printf("  lea rax, [rbp-%d]\n", node.LVar.Offset)
+		fmt.Printf("  push rax\n")
+	case ND_DEREF:
+		gen(node.Lhs)
+	default:
 		panic("Not valiable")
 	}
+}
 
-	fmt.Printf("  mov rax, rbp\n")
-	fmt.Printf("  sub rax, %d\n", node.LVar.Offset)
+func load() {
+	fmt.Printf("  pop rax\n")
+	fmt.Printf("  mov rax, [rax]\n")
 	fmt.Printf("  push rax\n")
 }
 
@@ -68,12 +76,10 @@ func gen(node *Node) {
 	case ND_NUM:
 		fmt.Printf("  push %d\n", node.Val)
 	case ND_LVAR:
-		genLval(node)
-		fmt.Printf("  pop rax\n")
-		fmt.Printf("  mov rax, [rax]\n")
-		fmt.Printf("  push rax\n")
+		genAddr(node)
+		load()
 	case ND_ASSIGN:
-		genLval(node.Lhs)
+		genAddr(node.Lhs)
 		gen(node.Rhs)
 
 		fmt.Printf("  pop rdi\n")
@@ -89,13 +95,13 @@ func gen(node *Node) {
 	case ND_ADD, ND_SUB, ND_MUL, ND_DIV, ND_EQ, ND_NE, ND_LT, ND_LE:
 		genBinary(node)
 	case ND_INC:
-		genLval(node.Lhs)
+		genAddr(node.Lhs)
 		fmt.Printf("  pop rax\n")
 		fmt.Printf("  mov rdi, [rax]\n")
 		fmt.Printf("  add rdi, 1\n")
 		fmt.Printf("  mov [rax], rdi\n")
 	case ND_DEC:
-		genLval((node.Lhs))
+		genAddr((node.Lhs))
 		fmt.Printf("  pop rax\n")
 		fmt.Printf("  mov rdi, [rax]\n")
 		fmt.Printf("  sub rdi, 1\n")
@@ -159,12 +165,10 @@ func gen(node *Node) {
 		fmt.Printf(".L.end.%d:\n", s)
 		fmt.Printf("  push rax\n")
 	case ND_ADDR:
-		genLval(node.Lhs)
+		genAddr(node.Lhs)
 	case ND_DEREF:
 		gen(node.Lhs)
-		fmt.Printf("  pop rax\n")
-		fmt.Printf("  mov rax, [rax]\n")
-		fmt.Printf("  push rax\n")
+		load()
 	}
 }
 

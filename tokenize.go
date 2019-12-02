@@ -30,8 +30,8 @@ var token *Token
 
 type LVar struct {
 	Name   string
-	Len    int // Length of the name
 	Offset int // Offset from RBP
+	Type   *Type
 }
 
 type LVarList struct {
@@ -43,7 +43,7 @@ var locals *LVarList // Local variables
 
 func (t *Token) findLVar() *LVar {
 	for v := locals; v != nil; v = v.Next {
-		if v.LVar.Len == t.len && t.str == v.LVar.Name {
+		if t.str == v.LVar.Name {
 			return v.LVar
 		}
 	}
