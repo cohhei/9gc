@@ -30,7 +30,7 @@ var token *Token
 
 type LVar struct {
 	Name   string
-	Offset int // Offset from RBP
+	Offset uint // Offset from RBP
 	Type   *Type
 }
 
@@ -80,6 +80,10 @@ func consume(op string) bool {
 	return true
 }
 
+func peek(op string) bool {
+	return token.isReserved() && len(op) == token.len && op == token.str
+}
+
 // Consumes the current token if it is an identifier.
 func consumeIdent() *Token {
 	if token.kind != TK_IDENT {
@@ -98,14 +102,14 @@ func expect(op string) {
 	token = token.next
 }
 
-// expectNumber returns the value and read the next token, otherwise returns the error.
-func expectNumber() (int, error) {
+// expectNumber returns the value and read the next token, otherwise panic.
+func expectNumber() int {
 	if token.kind != TK_NUM {
-		return 0, fmt.Errorf("'%s' is not a number.", string(token.str))
+		panic(fmt.Sprintf("'%s' is not a number.", string(token.str)))
 	}
 	val := token.val
 	token = token.next
-	return val, nil
+	return val
 }
 
 // tokenize tokenizes a string and returns it
@@ -130,7 +134,7 @@ func tokenize(str string) error {
 			continue
 		}
 
-		if strings.Contains("+-*/()<>;={},&", str[0:1]) {
+		if strings.Contains("+-*/()<>;={},&[]", str[0:1]) {
 			cur = cur.newToken(TK_RESERVED, str[:1], 1)
 			str = next(str)
 			continue

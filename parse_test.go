@@ -72,19 +72,19 @@ func TestParse(t *testing.T) {
 					FunctionName: "main",
 					Args:         []*Node{},
 					Locals: &LVarList{
-            		Next: &LVarList{LVar: &LVar{Name: "x", Type: intType}},
-								LVar: lvarPointerInt("y"),
+						Next: &LVarList{LVar: &LVar{Name: "x", Type: intType}},
+						LVar: lvarPointerInt("y"),
 					},
 					Block: &Node{
 						Kind: ND_BLOCK, Body: []*Node{
 							{Kind: ND_LVAR, Type: intType, LVar: lvarInt("x")},
-							{Kind: ND_LVAR, Type: &Type{TY_POINTER, intType}, LVar: lvarPointerInt("y")},
+							{Kind: ND_LVAR, Type: &Type{TY_POINTER, intType, 0}, LVar: lvarPointerInt("y")},
 							{Kind: ND_ASSIGN,
-								Lhs: &Node{Kind: ND_LVAR, Type: &Type{TY_POINTER, intType}, LVar: lvarPointerInt("y")},
-								Rhs: &Node{Kind: ND_ADDR, Type: &Type{TY_POINTER, intType}, Lhs: &Node{Kind: ND_LVAR, Type: intType, LVar: lvarInt("x")}},
+								Lhs: &Node{Kind: ND_LVAR, Type: &Type{TY_POINTER, intType, 0}, LVar: lvarPointerInt("y")},
+								Rhs: &Node{Kind: ND_ADDR, Type: &Type{TY_POINTER, intType, 0}, Lhs: &Node{Kind: ND_LVAR, Type: intType, LVar: lvarInt("x")}},
 							},
 							{Kind: ND_ASSIGN,
-								Lhs: &Node{Kind: ND_DEREF, Type: intType, Lhs: &Node{Kind: ND_LVAR, Type: &Type{TY_POINTER, intType}, LVar: lvarPointerInt("y")}},
+								Lhs: &Node{Kind: ND_DEREF, Type: intType, Lhs: &Node{Kind: ND_LVAR, Type: &Type{TY_POINTER, intType, 0}, LVar: lvarPointerInt("y")}},
 								Rhs: &Node{Kind: ND_NUM, Type: intType, Val: 3},
 							},
 						},
@@ -254,6 +254,13 @@ func TestStmt(t *testing.T) {
 				},
 			},
 		},
+		{
+			desc:  "Array",
+			input: "var i [10][2]int",
+			expected: []*Node{
+				{Kind: ND_LVAR, Type: arrayOf(arrayOf(intType, 2), 10), LVar: &LVar{Name: "i", Type: arrayOf(arrayOf(intType, 2), 10)}},
+			},
+		},
 	}
 
 	for _, tC := range testCases {
@@ -281,5 +288,5 @@ func lvarInt(s string) *LVar {
 }
 
 func lvarPointerInt(s string) *LVar {
-	return &LVar{s, 0, &Type{TY_POINTER, intType}}
+	return &LVar{s, 0, &Type{TY_POINTER, intType, 0}}
 }

@@ -156,7 +156,7 @@ func stmt() *Node {
 			panic(fmt.Sprintf("%s redeclared in this block", tok.str))
 		}
 
-		node = newLVarNode(tok.str, declarator())
+		node = newLVarNode(tok.str, parseType())
 	} else {
 		node = expr()
 	}
@@ -209,7 +209,7 @@ func program() {
 				Args:         definedArgs(),
 			}
 			if !consume("{") {
-				node.Type = declarator()
+				node.Type = parseType()
 			}
 			node.Block = block()
 			node.Locals = locals
@@ -351,11 +351,7 @@ func primary() *Node {
 	}
 
 	// If not so, it should be a number
-	val, err := expectNumber()
-	if err != nil {
-		panic(err)
-	}
-	return newNodeNum(val)
+	return newNodeNum(expectNumber())
 }
 
 func args() []*Node {
@@ -374,7 +370,7 @@ func definedArgs() []*Node {
 	args := []*Node{}
 	for !consume(")") {
 		if tok := consumeIdent(); tok != nil {
-			args = append(args, newLVarNode(tok.str, declarator()))
+			args = append(args, newLVarNode(tok.str, parseType()))
 		}
 		consume(",")
 	}
@@ -399,11 +395,21 @@ func newLVar(name string, ty *Type) *LVar {
 	return lvar
 }
 
-func declarator() *Type {
+func array() *Type {
+	expect("[")
+	l := expectNumber()
+	expect("]")
+	return arrayOf(parseType(), uint(l))
+}
+
+func parseType() *Type {
+	if peek("[") {
+		return array()
+	}
 	if consume("*") {
-		ty := declarator()
-		return &Type{TY_POINTER, ty}
+		ty := parseType()
+		return &Type{TY_POINTER, ty, 0}
 	}
 	expect("int")
-	return &Type{TY_INT, nil}
+	return &Type{TY_INT, nil, 0}
 }

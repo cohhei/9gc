@@ -174,4 +174,10 @@ func main() {
   return x
 }
 '
+try 0 '
+func main() {
+  var a [2][3]int
+  return 0
+}
+'
 echo OK

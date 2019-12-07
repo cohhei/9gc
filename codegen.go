@@ -33,7 +33,7 @@ func load() {
 
 func codegen(code []*Node) {
 	fmt.Printf(".intel_syntax noprefix\n")
-	var offset int
+	var offset uint
 	for _, n := range code {
 		switch n.Kind {
 		case ND_FUNC:
@@ -42,11 +42,11 @@ func codegen(code []*Node) {
 			funcname = n.FunctionName
 
 			for _, a := range n.Args {
-				offset += 8
+				offset += a.Type.size()
 				a.LVar.Offset = offset
 			}
 			for l := n.Locals; l != nil; l = l.Next {
-				offset += 8
+				offset += l.LVar.Type.size()
 				l.LVar.Offset = offset
 			}
 			fmt.Printf("  push rbp\n")
@@ -167,6 +167,9 @@ func gen(node *Node) {
 	case ND_ADDR:
 		genAddr(node.Lhs)
 	case ND_DEREF:
+		if v := node.Lhs.LVar; !v.Type.isPointer() {
+			panic(fmt.Sprintf("invalid indirect of %s (type %v)", v.Name, v.Type.Kind))
+		}
 		gen(node.Lhs)
 		load()
 	}
