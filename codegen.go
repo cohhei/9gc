@@ -20,6 +20,14 @@ func genAddr(node *Node) {
 		fmt.Printf("  push rax\n")
 	case ND_DEREF:
 		gen(node.Lhs)
+	case ND_INDEX:
+		genAddr(node.Lhs)
+		gen(node.Rhs)
+		fmt.Printf("  pop rdi\n")
+		fmt.Printf("  pop rax\n")
+		fmt.Printf("  imul rdi, %d\n", node.Lhs.Type.Ref.size())
+		fmt.Printf("  add rax, rdi\n")
+		fmt.Printf("  push rax\n")
 	default:
 		panic("Not valiable")
 	}
@@ -171,6 +179,12 @@ func gen(node *Node) {
 			panic(fmt.Sprintf("invalid indirect of %s (type %v)", v.Name, v.Type.Kind))
 		}
 		gen(node.Lhs)
+		load()
+	case ND_INDEX:
+		if ty := node.Lhs.Type; !ty.isArray() {
+			errorIndexing(ty.Kind)
+		}
+		genAddr(node)
 		load()
 	}
 }

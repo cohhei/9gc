@@ -27,6 +27,7 @@ const (
 	ND_FUNC                    // Function
 	ND_ADDR                    // &
 	ND_DEREF                   // *
+	ND_INDEX                   // x[y]
 )
 
 var nodeKindName = map[NodeKind]string{
@@ -51,6 +52,7 @@ var nodeKindName = map[NodeKind]string{
 	ND_FUNC:    "ND_FUNC",
 	ND_ADDR:    "ND_ADDR",
 	ND_DEREF:   "ND_DEREF",
+	ND_INDEX:   "ND_INDEX",
 }
 
 func (nk NodeKind) String() string {
@@ -298,17 +300,23 @@ func unary() *Node {
 func postfix() *Node {
 	node := primary()
 	if consume("++") {
-		node = &Node{
-			Kind: ND_INC,
-			Lhs:  node,
-		}
+		return newNode(ND_INC, node, nil)
 	} else if consume("--") {
-		node = &Node{
-			Kind: ND_DEC,
-			Lhs:  node,
-		}
+		return newNode(ND_DEC, node, nil)
+	} else if peek("[") {
+		return index(node)
 	}
 	return node
+}
+
+func index(base *Node) *Node {
+	if !consume("[") {
+		return base
+	}
+	i := primary()
+	expect("]")
+	node := newNode(ND_INDEX, base, i)
+	return index(node)
 }
 
 func primary() *Node {

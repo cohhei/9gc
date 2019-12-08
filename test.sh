@@ -180,4 +180,7 @@ func main() {
   return 0
 }
 '
+try 15 'func main() { var x [2]int; x[0]=3; x[1]=5; return x[0] * x[1]; }'
+try 2 'func main() { var x [2][3]int; x[1][2]=2; return x[1][2]; }'
+try 1 'func main() { var x [2][3]int; x[0][0]=1; y:=x; return y[0][0]; }'
 echo OK

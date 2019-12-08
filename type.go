@@ -1,5 +1,7 @@
 package main
 
+import "fmt"
+
 type TypeKind int
 
 const (
@@ -53,6 +55,10 @@ func (t *Type) isPointer() bool {
 	return t.Kind == TY_POINTER
 }
 
+func (t *Type) isArray() bool {
+	return t.Kind == TY_ARRAY
+}
+
 func (n *Node) addType() {
 	if n == nil || n.Type != nil {
 		return
@@ -78,11 +84,24 @@ func (n *Node) addType() {
 		n.Type = intType
 	case ND_ADDR:
 		n.Type = &Type{TY_POINTER, n.Lhs.Type, 0}
-	case ND_DEREF:
+	case ND_DEREF, ND_INDEX:
 		ref := n.Lhs.Type.Ref
 		if ref == nil {
-			panic("nvalid pointer dereference")
+			errorRef(n)
 		}
 		n.Type = ref
 	}
+}
+
+func errorRef(n *Node) {
+	switch n.Kind {
+	case ND_DEREF:
+		panic("invalid pointer dereference")
+	case ND_INDEX:
+		errorIndexing(n.Lhs.Type.Kind)
+	}
+}
+
+func errorIndexing(kind TypeKind) {
+	panic(fmt.Sprintf("invalid operation (type %s does not support indexing)", kind))
 }

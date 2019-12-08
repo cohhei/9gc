@@ -261,6 +261,23 @@ func TestStmt(t *testing.T) {
 				{Kind: ND_LVAR, Type: arrayOf(arrayOf(intType, 2), 10), LVar: &LVar{Name: "i", Type: arrayOf(arrayOf(intType, 2), 10)}},
 			},
 		},
+		{
+			desc:  "Index",
+			input: "var i [10][2]int;i[1][1]",
+			expected: []*Node{
+				{Kind: ND_LVAR, Type: arrayOf(arrayOf(intType, 2), 10), LVar: &LVar{Name: "i", Type: arrayOf(arrayOf(intType, 2), 10)}},
+				{Kind: ND_INDEX,
+					Type: intType,
+					Lhs: &Node{
+						Kind: ND_INDEX,
+						Type: arrayOf(intType, 2),
+						Lhs:&Node{Kind: ND_LVAR, Type: arrayOf(arrayOf(intType, 2), 10), LVar: &LVar{Name: "i", Type: arrayOf(arrayOf(intType, 2), 10)}},
+						Rhs: &Node{Kind: ND_NUM, Type: intType, Val: 1},
+					},
+					Rhs: &Node{Kind: ND_NUM, Type: intType, Val: 1},
+				},
+			},
+		},
 	}
 
 	for _, tC := range testCases {
