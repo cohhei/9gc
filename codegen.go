@@ -15,9 +15,13 @@ func seq() int {
 }
 func genAddr(node *Node) {
 	switch node.Kind {
-	case ND_LVAR:
-		fmt.Printf("  lea rax, [rbp-%d]\n", node.LVar.Offset)
-		fmt.Printf("  push rax\n")
+	case ND_VAR:
+		if node.Var.IsLocal {
+			fmt.Printf("  lea rax, [rbp-%d]\n", node.Var.Offset)
+			fmt.Printf("  push rax\n")
+		} else {
+			fmt.Printf("  push offset %s\n", node.Var.Name)
+		}
 	case ND_DEREF:
 		gen(node.Lhs)
 	case ND_INDEX:
@@ -41,6 +45,22 @@ func load() {
 
 func codegen(code []*Node) {
 	fmt.Printf(".intel_syntax noprefix\n")
+	emitData(code)
+	emitText(code)
+}
+
+func emitData(code []*Node) {
+	fmt.Printf(".data\n")
+
+	for _, v := range globals {
+		fmt.Printf("%s:\n", v.Name)
+		fmt.Printf("  .zero %d\n", v.Type.size())
+	}
+}
+
+func emitText(code []*Node) {
+	fmt.Printf(".text\n")
+
 	var offset uint
 	for _, n := range code {
 		switch n.Kind {
@@ -51,17 +71,17 @@ func codegen(code []*Node) {
 
 			for _, a := range n.Args {
 				offset += a.Type.size()
-				a.LVar.Offset = offset
+				a.Var.Offset = offset
 			}
 			for l := n.Locals; l != nil; l = l.Next {
-				offset += l.LVar.Type.size()
-				l.LVar.Offset = offset
+				offset += l.Var.Type.size()
+				l.Var.Offset = offset
 			}
 			fmt.Printf("  push rbp\n")
 			fmt.Printf("  mov rbp, rsp\n")
 			fmt.Printf("  sub rsp, %d\n", offset)
 			for i, a := range n.Args {
-				fmt.Printf("  mov [rbp-%d], %s\n", a.LVar.Offset, argreg[i])
+				fmt.Printf("  mov [rbp-%d], %s\n", a.Var.Offset, argreg[i])
 			}
 
 			gen(n.Block)
@@ -83,7 +103,7 @@ func gen(node *Node) {
 	switch node.Kind {
 	case ND_NUM:
 		fmt.Printf("  push %d\n", node.Val)
-	case ND_LVAR:
+	case ND_VAR:
 		genAddr(node)
 		load()
 	case ND_ASSIGN:
@@ -175,7 +195,7 @@ func gen(node *Node) {
 	case ND_ADDR:
 		genAddr(node.Lhs)
 	case ND_DEREF:
-		if v := node.Lhs.LVar; !v.Type.isPointer() {
+		if v := node.Lhs.Var; !v.Type.isPointer() {
 			panic(fmt.Sprintf("invalid indirect of %s (type %v)", v.Name, v.Type.Kind))
 		}
 		gen(node.Lhs)

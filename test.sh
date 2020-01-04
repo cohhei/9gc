@@ -4,7 +4,7 @@ try() {
   input="$2"
 
   ./9gc "$input" > tmp.s
-  gcc -o tmp tmp.s
+  gcc -static -o tmp tmp.s
   ./tmp
   actual="$?"
 
@@ -183,4 +183,11 @@ func main() {
 try 15 'func main() { var x [2]int; x[0]=3; x[1]=5; return x[0] * x[1]; }'
 try 2 'func main() { var x [2][3]int; x[1][2]=2; return x[1][2]; }'
 try 1 'func main() { var x [2][3]int; x[0][0]=1; y:=x; return y[0][0]; }'
+try 0 'var x int; func main() { return x }'
+try 3 'var x int; func main() { x=3; return x }'
+try 0 'var x [4]int; func main() { x[0]=0; x[1]=1; x[2]=2; x[3]=3; return x[0] }'
+try 1 'var x [4]int; func main() { x[0]=0; x[1]=1; x[2]=2; x[3]=3; return x[1] }'
+try 2 'var x [4]int; func main() { x[0]=0; x[1]=1; x[2]=2; x[3]=3; return x[2] }'
+try 3 'var x [4]int; func main() { x[0]=0; x[1]=1; x[2]=2; x[3]=3; return x[3] }'
+
 echo OK

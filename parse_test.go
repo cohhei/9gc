@@ -11,6 +11,7 @@ func TestParse(t *testing.T) {
 		desc     string
 		input    string
 		expected []*Node
+		globals  map[string]*Var
 	}{
 		{
 			desc:  "Function",
@@ -20,12 +21,12 @@ func TestParse(t *testing.T) {
 					Kind:         ND_FUNC,
 					FunctionName: "add",
 					Args: []*Node{
-						{Kind: ND_LVAR, Type: intType, LVar: lvarInt("a")}, {Kind: ND_LVAR, Type: intType, LVar: lvarInt("b")},
+						{Kind: ND_VAR, Type: intType, Var: lvarInt("a")}, {Kind: ND_VAR, Type: intType, Var: lvarInt("b")},
 					},
-					Locals: &LVarList{
-						LVar: lvarInt("b"),
-						Next: &LVarList{
-							LVar: lvarInt("a"),
+					Locals: &VarList{
+						Var: lvarInt("b"),
+						Next: &VarList{
+							Var: lvarInt("a"),
 						},
 					},
 					Block: &Node{
@@ -35,8 +36,8 @@ func TestParse(t *testing.T) {
 								Lhs: &Node{
 									Kind: ND_ADD,
 									Type: intType,
-									Lhs:  &Node{Kind: ND_LVAR, Type: intType, LVar: lvarInt("a")},
-									Rhs:  &Node{Kind: ND_LVAR, Type: intType, LVar: lvarInt("b")},
+									Lhs:  &Node{Kind: ND_VAR, Type: intType, Var: lvarInt("a")},
+									Rhs:  &Node{Kind: ND_VAR, Type: intType, Var: lvarInt("b")},
 								},
 							},
 						},
@@ -71,26 +72,31 @@ func TestParse(t *testing.T) {
 					Kind:         ND_FUNC,
 					FunctionName: "main",
 					Args:         []*Node{},
-					Locals: &LVarList{
-						Next: &LVarList{LVar: &LVar{Name: "x", Type: intType}},
-						LVar: lvarPointerInt("y"),
+					Locals: &VarList{
+						Next: &VarList{Var: lvarInt("x")},
+						Var:  lvarPointerInt("y"),
 					},
 					Block: &Node{
 						Kind: ND_BLOCK, Body: []*Node{
-							{Kind: ND_LVAR, Type: intType, LVar: lvarInt("x")},
-							{Kind: ND_LVAR, Type: &Type{TY_POINTER, intType, 0}, LVar: lvarPointerInt("y")},
+							{Kind: ND_VAR, Type: intType, Var: lvarInt("x")},
+							{Kind: ND_VAR, Type: &Type{TY_POINTER, intType, 0}, Var: lvarPointerInt("y")},
 							{Kind: ND_ASSIGN,
-								Lhs: &Node{Kind: ND_LVAR, Type: &Type{TY_POINTER, intType, 0}, LVar: lvarPointerInt("y")},
-								Rhs: &Node{Kind: ND_ADDR, Type: &Type{TY_POINTER, intType, 0}, Lhs: &Node{Kind: ND_LVAR, Type: intType, LVar: lvarInt("x")}},
+								Lhs: &Node{Kind: ND_VAR, Type: &Type{TY_POINTER, intType, 0}, Var: lvarPointerInt("y")},
+								Rhs: &Node{Kind: ND_ADDR, Type: &Type{TY_POINTER, intType, 0}, Lhs: &Node{Kind: ND_VAR, Type: intType, Var: lvarInt("x")}},
 							},
 							{Kind: ND_ASSIGN,
-								Lhs: &Node{Kind: ND_DEREF, Type: intType, Lhs: &Node{Kind: ND_LVAR, Type: &Type{TY_POINTER, intType, 0}, LVar: lvarPointerInt("y")}},
+								Lhs: &Node{Kind: ND_DEREF, Type: intType, Lhs: &Node{Kind: ND_VAR, Type: &Type{TY_POINTER, intType, 0}, Var: lvarPointerInt("y")}},
 								Rhs: &Node{Kind: ND_NUM, Type: intType, Val: 3},
 							},
 						},
 					},
 				},
 			},
+		},
+		{
+			desc:    "Global variable",
+			input:   "var i int",
+			globals: map[string]*Var{"i": {"i", intType, false, 0}},
 		},
 	}
 	for _, tC := range testCases {
@@ -103,6 +109,9 @@ func TestParse(t *testing.T) {
 			actual := code
 
 			if diff := cmp.Diff(actual, tC.expected); diff != "" {
+				t.Errorf("Hogefunc differs: (-got +want)\n%s", diff)
+			}
+			if diff := cmp.Diff(globals, tC.globals); tC.globals != nil && diff != "" {
 				t.Errorf("Hogefunc differs: (-got +want)\n%s", diff)
 			}
 		})
@@ -122,8 +131,8 @@ func TestStmt(t *testing.T) {
 				&Node{
 					Kind: ND_ASSIGN,
 					Lhs: &Node{
-						Kind: ND_LVAR,
-						LVar: lvarInt("a"),
+						Kind: ND_VAR,
+						Var:  lvarInt("a"),
 						Type: intType,
 					},
 					Rhs: &Node{
@@ -136,8 +145,8 @@ func TestStmt(t *testing.T) {
 				&Node{
 					Kind: ND_ASSIGN,
 					Lhs: &Node{
-						Kind: ND_LVAR,
-						LVar: lvarInt("triple"),
+						Kind: ND_VAR,
+						Var:  lvarInt("triple"),
 						Type: intType,
 					},
 					Rhs: &Node{
@@ -153,13 +162,13 @@ func TestStmt(t *testing.T) {
 						Kind: ND_MUL,
 						Type: intType,
 						Lhs: &Node{
-							Kind: ND_LVAR,
-							LVar: lvarInt("a"),
+							Kind: ND_VAR,
+							Var:  lvarInt("a"),
 							Type: intType,
 						},
 						Rhs: &Node{
-							Kind: ND_LVAR,
-							LVar: lvarInt("triple"),
+							Kind: ND_VAR,
+							Var:  lvarInt("triple"),
 							Type: intType,
 						},
 					},
@@ -172,10 +181,10 @@ func TestStmt(t *testing.T) {
 			expected: []*Node{
 				{
 					Kind: ND_IF,
-					Init: &Node{Kind: ND_ASSIGN, Lhs: &Node{Kind: ND_LVAR, Type: intType, LVar: lvarInt("a")}, Rhs: &Node{Kind: ND_NUM, Type: intType, Val: 0}},
+					Init: &Node{Kind: ND_ASSIGN, Lhs: &Node{Kind: ND_VAR, Type: intType, Var: lvarInt("a")}, Rhs: &Node{Kind: ND_NUM, Type: intType, Val: 0}},
 					Cond: &Node{
 						Kind: ND_EQ,
-						Lhs:  &Node{Kind: ND_LVAR, Type: intType, LVar: lvarInt("a")},
+						Lhs:  &Node{Kind: ND_VAR, Type: intType, Var: lvarInt("a")},
 						Rhs:  &Node{Kind: ND_NUM, Type: intType, Val: 1},
 						Type: intType,
 					},
@@ -183,7 +192,7 @@ func TestStmt(t *testing.T) {
 						Kind: ND_BLOCK,
 						Body: []*Node{{
 							Kind: ND_RETURN,
-							Lhs:  &Node{Kind: ND_LVAR, Type: intType, LVar: lvarInt("a")},
+							Lhs:  &Node{Kind: ND_VAR, Type: intType, Var: lvarInt("a")},
 						}},
 					},
 					Els: &Node{
@@ -191,7 +200,7 @@ func TestStmt(t *testing.T) {
 						Cond: &Node{
 							Kind: ND_EQ,
 							Type: intType,
-							Lhs:  &Node{Kind: ND_LVAR, Type: intType, LVar: lvarInt("a")},
+							Lhs:  &Node{Kind: ND_VAR, Type: intType, Var: lvarInt("a")},
 							Rhs:  &Node{Kind: ND_NUM, Type: intType, Val: 2},
 						},
 						Then: &Node{
@@ -216,13 +225,13 @@ func TestStmt(t *testing.T) {
 			expected: []*Node{
 				{
 					Kind: ND_FOR,
-					Init: &Node{Kind: ND_ASSIGN, Lhs: &Node{Kind: ND_LVAR, Type: intType, LVar: lvarInt("i")}, Rhs: &Node{Kind: ND_NUM, Type: intType, Val: 1}},
+					Init: &Node{Kind: ND_ASSIGN, Lhs: &Node{Kind: ND_VAR, Type: intType, Var: lvarInt("i")}, Rhs: &Node{Kind: ND_NUM, Type: intType, Val: 1}},
 					Cond: &Node{
 						Kind: ND_LT, Type: intType,
-						Lhs: &Node{Kind: ND_LVAR, Type: intType, LVar: lvarInt("i")},
+						Lhs: &Node{Kind: ND_VAR, Type: intType, Var: lvarInt("i")},
 						Rhs: &Node{Kind: ND_NUM, Type: intType, Val: 10},
 					},
-					Inc:  &Node{Kind: ND_INC, Lhs: &Node{Kind: ND_LVAR, Type: intType, LVar: lvarInt("i")}},
+					Inc:  &Node{Kind: ND_INC, Lhs: &Node{Kind: ND_VAR, Type: intType, Var: lvarInt("i")}},
 					Then: &Node{Kind: ND_BLOCK, Body: []*Node{{Kind: ND_NUM, Type: intType, Val: 1}}},
 				},
 			},
@@ -231,12 +240,12 @@ func TestStmt(t *testing.T) {
 			desc:  "ForStatement",
 			input: "var i int;for i < 10 { 1 }",
 			expected: []*Node{
-				{Kind: ND_LVAR, Type: intType, LVar: lvarInt("i")},
+				{Kind: ND_VAR, Type: intType, Var: lvarInt("i")},
 				{
 					Kind: ND_FOR,
 					Cond: &Node{
 						Kind: ND_LT, Type: intType,
-						Lhs: &Node{Kind: ND_LVAR, Type: intType, LVar: lvarInt("i")},
+						Lhs: &Node{Kind: ND_VAR, Type: intType, Var: lvarInt("i")},
 						Rhs: &Node{Kind: ND_NUM, Type: intType, Val: 10},
 					},
 					Then: &Node{Kind: ND_BLOCK, Body: []*Node{{Kind: ND_NUM, Type: intType, Val: 1}}},
@@ -247,10 +256,10 @@ func TestStmt(t *testing.T) {
 			desc:  "ForStatement",
 			input: "var i int;for { i-- }",
 			expected: []*Node{
-				{Kind: ND_LVAR, Type: intType, LVar: lvarInt("i")},
+				{Kind: ND_VAR, Type: intType, Var: lvarInt("i")},
 				{
 					Kind: ND_FOR,
-					Then: &Node{Kind: ND_BLOCK, Body: []*Node{{Kind: ND_DEC, Lhs: &Node{Kind: ND_LVAR, Type: intType, LVar: lvarInt("i")}}}},
+					Then: &Node{Kind: ND_BLOCK, Body: []*Node{{Kind: ND_DEC, Lhs: &Node{Kind: ND_VAR, Type: intType, Var: lvarInt("i")}}}},
 				},
 			},
 		},
@@ -258,21 +267,21 @@ func TestStmt(t *testing.T) {
 			desc:  "Array",
 			input: "var i [10][2]int",
 			expected: []*Node{
-				{Kind: ND_LVAR, Type: arrayOf(arrayOf(intType, 2), 10), LVar: &LVar{Name: "i", Type: arrayOf(arrayOf(intType, 2), 10)}},
+				{Kind: ND_VAR, Type: arrayOf(arrayOf(intType, 2), 10), Var: lvarPointerPoinsterInt("i")},
 			},
 		},
 		{
 			desc:  "Index",
 			input: "var i [10][2]int;i[1][1]",
 			expected: []*Node{
-				{Kind: ND_LVAR, Type: arrayOf(arrayOf(intType, 2), 10), LVar: &LVar{Name: "i", Type: arrayOf(arrayOf(intType, 2), 10)}},
+				{Kind: ND_VAR, Type: arrayOf(arrayOf(intType, 2), 10), Var: lvarPointerPoinsterInt("i")},
 				{Kind: ND_INDEX,
 					Type: intType,
 					Lhs: &Node{
 						Kind: ND_INDEX,
 						Type: arrayOf(intType, 2),
-						Lhs:&Node{Kind: ND_LVAR, Type: arrayOf(arrayOf(intType, 2), 10), LVar: &LVar{Name: "i", Type: arrayOf(arrayOf(intType, 2), 10)}},
-						Rhs: &Node{Kind: ND_NUM, Type: intType, Val: 1},
+						Lhs:  &Node{Kind: ND_VAR, Type: arrayOf(arrayOf(intType, 2), 10), Var: lvarPointerPoinsterInt("i")},
+						Rhs:  &Node{Kind: ND_NUM, Type: intType, Val: 1},
 					},
 					Rhs: &Node{Kind: ND_NUM, Type: intType, Val: 1},
 				},
@@ -283,6 +292,7 @@ func TestStmt(t *testing.T) {
 	for _, tC := range testCases {
 		t.Run(tC.desc, func(t *testing.T) {
 			token, code, locals = nil, nil, nil
+			globals = make(map[string]*Var)
 			if err := tokenize(tC.input); err != nil {
 				t.Fatal(err)
 			}
@@ -300,10 +310,14 @@ func TestStmt(t *testing.T) {
 	}
 }
 
-func lvarInt(s string) *LVar {
-	return &LVar{s, 0, intType}
+func lvarInt(s string) *Var {
+	return &Var{s, intType, true, 0}
 }
 
-func lvarPointerInt(s string) *LVar {
-	return &LVar{s, 0, &Type{TY_POINTER, intType, 0}}
+func lvarPointerInt(s string) *Var {
+	return &Var{s, &Type{TY_POINTER, intType, 0}, true, 0}
+}
+
+func lvarPointerPoinsterInt(s string) *Var {
+	return &Var{s, arrayOf(arrayOf(intType, 2), 10), true, 0}
 }

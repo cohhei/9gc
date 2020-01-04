@@ -37,6 +37,10 @@ func (t *Type) size() uint {
 	}
 }
 
+func (t *Type) String() string {
+	return fmt.Sprintf("%+v", *t)
+}
+
 func arrayOf(ty *Type, len uint) *Type {
 	return &Type{
 		Kind:     TY_ARRAY,

@@ -11,7 +11,7 @@ const (
 	ND_MUL                     // *
 	ND_DIV                     // /
 	ND_ASSIGN                  // =
-	ND_LVAR                    // local variable
+	ND_VAR                     // variable
 	ND_EQ                      // ==
 	ND_NE                      // !=
 	ND_LT                      // <
@@ -36,7 +36,7 @@ var nodeKindName = map[NodeKind]string{
 	ND_MUL:     "ND_MUL",
 	ND_DIV:     "ND_DIV",
 	ND_ASSIGN:  "ND_ASSIGN",
-	ND_LVAR:    "ND_LVAR",
+	ND_VAR:     "ND_LVAR",
 	ND_EQ:      "ND_EQ",
 	ND_NE:      "ND_NE",
 	ND_LT:      "ND_LT",
@@ -80,11 +80,11 @@ type Node struct {
 	// function
 	FunctionName string
 	Args         []*Node
-	Locals       *LVarList
+	Locals       *VarList
 	Block        *Node
 
 	// var
-	LVar *LVar
+	Var *Var
 }
 
 func newNode(kind NodeKind, lhs *Node, rhs *Node) *Node {
@@ -148,11 +148,7 @@ func stmt() *Node {
 	} else if consume("{") {
 		node = block()
 	} else if consume("var") {
-		tok := consumeIdent()
-		if tok == nil {
-			panic("expected 'IDENT'")
-		}
-
+		tok := expectIdent()
 		lvar := tok.findLVar()
 		if lvar != nil {
 			panic(fmt.Sprintf("%s redeclared in this block", tok.str))
@@ -198,30 +194,46 @@ func block() *Node {
 }
 
 func program() {
+	globals = make(map[string]*Var)
 	for !token.atEof() {
-		if consume("func") {
-			locals = nil
-			tok := consumeIdent()
-			if tok == nil {
-				panic("expected 'IDENT'")
-			}
-			node := &Node{
-				Kind:         ND_FUNC,
-				FunctionName: tok.str,
-				Args:         definedArgs(),
-			}
-			if !consume("{") {
-				node.Type = parseType()
-			}
-			node.Block = block()
-			node.Locals = locals
-			node.addType()
-			code = append(code, node)
-			continue
+		switch token.str {
+		case "func":
+			function()
+		case "var":
+			gvar()
+		default:
+			panic(fmt.Sprintf("expected declaration, found %s", token.str))
 		}
-
-		panic(fmt.Sprintf("expected declaration, found %s", token.str))
+		consume(";")
 	}
+}
+
+func function() {
+	expect("func")
+	locals = nil
+	tok := expectIdent()
+	node := &Node{
+		Kind:         ND_FUNC,
+		FunctionName: tok.str,
+		Args:         definedArgs(),
+	}
+	if !consume("{") {
+		node.Type = parseType()
+	}
+	node.Block = block()
+	node.Locals = locals
+	node.addType()
+	code = append(code, node)
+}
+
+func gvar() {
+	expect("var")
+	tok := expectIdent()
+	if globals[tok.str] != nil {
+		panic(fmt.Sprintf("%s redeclared in this block", tok.str))
+	}
+	gvar := newGVar(tok.str, parseType())
+	globals[gvar.Name] = gvar
 }
 
 func equality() *Node {
@@ -342,9 +354,16 @@ func primary() *Node {
 		lvar := tok.findLVar()
 		if lvar != nil {
 			node := &Node{
-				Kind: ND_LVAR,
-				LVar: lvar,
+				Kind: ND_VAR,
+				Var:  lvar,
 				Type: lvar.Type,
+			}
+			return node
+		} else if gvar := globals[tok.str]; gvar != nil {
+			node := &Node{
+				Kind: ND_VAR,
+				Var:  gvar,
+				Type: gvar.Type,
 			}
 			return node
 		} else {
@@ -385,21 +404,40 @@ func definedArgs() []*Node {
 	return args
 }
 
-func newLVarNode(name string, ty *Type) *Node {
+func newGVarNode(name string, ty *Type) *Node {
 	node := &Node{
-		Kind: ND_LVAR,
-		LVar: newLVar(name, ty),
+		Kind: ND_VAR,
+		Var:  newGVar(name, ty),
 		Type: ty,
 	}
 	return node
 }
 
-func newLVar(name string, ty *Type) *LVar {
-	lvar := &LVar{
+func newGVar(name string, ty *Type) *Var {
+	gvar := &Var{
 		Name: name,
 		Type: ty,
 	}
-	locals = &LVarList{locals, lvar}
+	globals[name] = gvar
+	return gvar
+}
+
+func newLVarNode(name string, ty *Type) *Node {
+	node := &Node{
+		Kind: ND_VAR,
+		Var:  newLVar(name, ty),
+		Type: ty,
+	}
+	return node
+}
+
+func newLVar(name string, ty *Type) *Var {
+	lvar := &Var{
+		Name:    name,
+		Type:    ty,
+		IsLocal: true,
+	}
+	locals = &VarList{locals, lvar}
 	return lvar
 }
 

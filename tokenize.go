@@ -28,23 +28,27 @@ type Token struct {
 // Current token
 var token *Token
 
-type LVar struct {
-	Name   string
+type Var struct {
+	Name    string
+	Type    *Type
+	IsLocal bool
+
+	// Local variables
 	Offset uint // Offset from RBP
-	Type   *Type
 }
 
-type LVarList struct {
-	Next *LVarList
-	LVar *LVar
+type VarList struct {
+	Next *VarList
+	Var  *Var
 }
 
-var locals *LVarList // Local variables
+var locals *VarList         // Local variables
+var globals map[string]*Var // Global variables
 
-func (t *Token) findLVar() *LVar {
+func (t *Token) findLVar() *Var {
 	for v := locals; v != nil; v = v.Next {
-		if t.str == v.LVar.Name {
-			return v.LVar
+		if t.str == v.Var.Name {
+			return v.Var
 		}
 	}
 	return nil
@@ -110,6 +114,14 @@ func expectNumber() int {
 	val := token.val
 	token = token.next
 	return val
+}
+
+func expectIdent() *Token {
+	tok := consumeIdent()
+	if tok == nil {
+		panic(fmt.Sprintf("expected 'IDENT', found %s", token.str))
+	}
+	return tok
 }
 
 // tokenize tokenizes a string and returns it
