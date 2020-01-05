@@ -12,6 +12,7 @@ type TokenKind int
 const (
 	TK_RESERVED TokenKind = iota
 	TK_IDENT
+	TK_STR
 	TK_NUM
 	TK_EOF
 )
@@ -35,6 +36,10 @@ type Var struct {
 
 	// Local variables
 	Offset uint // Offset from RBP
+
+	// Global variables
+	Content string
+	Len     int
 }
 
 type VarList struct {
@@ -142,6 +147,23 @@ func tokenize(str string) error {
 		// Skip the space
 		if isSpace(str[0]) {
 			str = next(str)
+			continue
+		}
+
+		// String literals
+		if str[0] == '"' {
+			var content string
+			for i, s := range str[1:] {
+				if s == '"' {
+					content = str[1 : i+1]
+					break
+				}
+			}
+			if len(content) == 0 {
+				panic("string literal not terminated")
+			}
+			cur = cur.newToken(TK_STR, content, len(content))
+			str = str[len(content)+2:]
 			continue
 		}
 

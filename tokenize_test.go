@@ -154,6 +154,17 @@ func TestTokenize(t *testing.T) {
 				tokenEof,
 			},
 		},
+		{
+			`var str := "string";`,
+			[]*Token{
+				{"var", 3, 0, TK_RESERVED, nil},
+				{"str", 3, 0, TK_IDENT, nil},
+				{":=", 2, 0, TK_RESERVED, nil},
+				{"string", 6, 0, TK_STR, nil},
+				{";", 1, 0, TK_RESERVED, nil},
+				tokenEof,
+			},
+		},
 	}
 	for _, tC := range testCases {
 		t.Run(tC.str, func(t *testing.T) {
