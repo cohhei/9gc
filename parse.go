@@ -219,6 +219,7 @@ func function() {
 	}
 	if !consume("{") {
 		node.Type = parseType()
+		expect("{")
 	}
 	node.Block = block()
 	node.Locals = locals

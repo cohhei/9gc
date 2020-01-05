@@ -145,7 +145,7 @@ try 3 "
 func main() {
   return add(1, 2)
 }
-func add(a int, b int) {
+func add(a int, b int) int {
   return a + b
 }
 "
@@ -153,7 +153,7 @@ try 89 '
 func main() { 
   return fib(10)
 }
-func fib(x int) { 
+func fib(x int) int { 
   if x<=1 {return 1}
   return fib(x-1) + fib(x-2)
 }
