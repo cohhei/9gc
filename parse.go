@@ -456,6 +456,6 @@ func parseType() *Type {
 		ty := parseType()
 		return &Type{TY_POINTER, ty, 0}
 	}
-	expect("int")
-	return &Type{TY_INT, nil, 0}
+	kind := expectType()
+	return &Type{kind, nil, 0}
 }

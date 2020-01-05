@@ -5,15 +5,22 @@ import "fmt"
 type TypeKind int
 
 const (
-	TY_INT TypeKind = iota
+	TY_BYTE TypeKind = iota
+	TY_INT
 	TY_POINTER
 	TY_ARRAY
 )
 
 var typeKindString = map[TypeKind]string{
+	TY_BYTE:    "byte",
 	TY_INT:     "int",
 	TY_POINTER: "pointer",
 	TY_ARRAY:   "array",
+}
+
+var typeNames = map[string]TypeKind{
+	"int":  TY_INT,
+	"byte": TY_BYTE,
 }
 
 func (tk TypeKind) String() string {
@@ -28,7 +35,7 @@ type Type struct {
 
 func (t *Type) size() uint {
 	switch t.Kind {
-	case TY_INT, TY_POINTER:
+	case TY_BYTE, TY_INT, TY_POINTER:
 		return 8
 	case TY_ARRAY:
 		return t.Ref.size() * t.ArrayLen

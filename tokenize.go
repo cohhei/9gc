@@ -124,6 +124,15 @@ func expectIdent() *Token {
 	return tok
 }
 
+func expectType() TypeKind {
+	kind, isType := typeNames[token.str]
+	if !isType {
+		panic(fmt.Sprintf("expected 'TYPE', found %s", token.str))
+	}
+	token = token.next
+	return kind
+}
+
 // tokenize tokenizes a string and returns it
 func tokenize(str string) error {
 	var head Token
@@ -192,7 +201,7 @@ func isSpace(s byte) bool {
 }
 
 var keywords = []string{
-	"return", "if", "else", "for", "func", "var", "int",
+	"return", "if", "else", "for", "func", "var", "int", "byte",
 }
 
 func startWithReserved(str string) string {
