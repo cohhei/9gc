@@ -35,7 +35,9 @@ type Type struct {
 
 func (t *Type) size() uint {
 	switch t.Kind {
-	case TY_BYTE, TY_INT, TY_POINTER:
+	case TY_BYTE:
+		return 1
+	case TY_INT, TY_POINTER:
 		return 8
 	case TY_ARRAY:
 		return t.Ref.size() * t.ArrayLen

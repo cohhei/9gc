@@ -4,7 +4,8 @@ import (
 	"fmt"
 )
 
-var argreg = []string{"rdi", "rsi", "rdx", "rcx", "r8", "r9"}
+var argreg1 = []string{"dil", "sil", "dl", "cl", "r8b", "r9b"}
+var argreg8 = []string{"rdi", "rsi", "rdx", "rcx", "r8", "r9"}
 var funcname string
 var label int
 
@@ -37,10 +38,25 @@ func genAddr(node *Node) {
 	}
 }
 
-func load() {
+func load(ty *Type) {
 	fmt.Printf("  pop rax\n")
-	fmt.Printf("  mov rax, [rax]\n")
+	if ty.size() == 1 {
+		fmt.Printf("  movsx rax, byte ptr [rax]\n")
+	} else {
+		fmt.Printf("  mov rax, [rax]\n")
+	}
 	fmt.Printf("  push rax\n")
+}
+
+func store(ty *Type) {
+	fmt.Printf("  pop rdi\n")
+	fmt.Printf("  pop rax\n")
+	if ty.size() == 1 {
+		fmt.Printf("  mov [rax], dil\n")
+	} else {
+		fmt.Printf("  mov [rax], rdi\n")
+	}
+	fmt.Printf("  push rdi\n")
 }
 
 func codegen(code []*Node) {
@@ -55,6 +71,21 @@ func emitData(code []*Node) {
 	for _, v := range globals {
 		fmt.Printf("%s:\n", v.Name)
 		fmt.Printf("  .zero %d\n", v.Type.size())
+	}
+}
+
+func loadArgs(args []*Node) {
+	for i, a := range args {
+		v := a.Var
+		sz := a.Type.size()
+		switch sz {
+		case 1:
+			fmt.Printf("  mov [rbp-%d], %s\n", v.Offset, argreg1[i])
+		case 8:
+			fmt.Printf("  mov [rbp-%d], %s\n", v.Offset, argreg8[i])
+		default:
+			panic(fmt.Sprintf("invalid size: %d", sz))
+		}
 	}
 }
 
@@ -80,9 +111,7 @@ func emitText(code []*Node) {
 			fmt.Printf("  push rbp\n")
 			fmt.Printf("  mov rbp, rsp\n")
 			fmt.Printf("  sub rsp, %d\n", offset)
-			for i, a := range n.Args {
-				fmt.Printf("  mov [rbp-%d], %s\n", a.Var.Offset, argreg[i])
-			}
+			loadArgs(n.Args)
 
 			gen(n.Block)
 
@@ -105,15 +134,11 @@ func gen(node *Node) {
 		fmt.Printf("  push %d\n", node.Val)
 	case ND_VAR:
 		genAddr(node)
-		load()
+		load(node.Type)
 	case ND_ASSIGN:
 		genAddr(node.Lhs)
 		gen(node.Rhs)
-
-		fmt.Printf("  pop rdi\n")
-		fmt.Printf("  pop rax\n")
-		fmt.Printf("  mov [rax], rdi\n")
-		fmt.Printf("  push rdi\n")
+		store(node.Lhs.Type)
 	case ND_RETURN:
 		if node.Lhs != nil {
 			gen(node.Lhs)
@@ -173,7 +198,7 @@ func gen(node *Node) {
 			nargs++
 		}
 		for i := nargs - 1; i >= 0; i-- {
-			fmt.Printf("  pop %s\n", argreg[i])
+			fmt.Printf("  pop %s\n", argreg8[i])
 		}
 		// We need to align RSP to a 16 byte boundary before
 		// calling a function because it is an ABI requirement.
@@ -199,13 +224,13 @@ func gen(node *Node) {
 			panic(fmt.Sprintf("invalid indirect of %s (type %v)", v.Name, v.Type.Kind))
 		}
 		gen(node.Lhs)
-		load()
+		load(node.Type)
 	case ND_INDEX:
 		if ty := node.Lhs.Type; !ty.isArray() {
 			errorIndexing(ty.Kind)
 		}
 		genAddr(node)
-		load()
+		load(node.Type)
 	}
 }
 
