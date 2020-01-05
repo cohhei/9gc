@@ -106,6 +106,18 @@ func newNodeNum(val int) *Node {
 
 var code []*Node
 
+type Labeler struct {
+	Counter int
+}
+
+func (l *Labeler) New() string {
+	label := fmt.Sprintf(".L.data.%d", l.Counter)
+	l.Counter++
+	return label
+}
+
+var labeler = &Labeler{}
+
 func assign() *Node {
 	node := equality()
 	if consume("=") || consume(":=") {
@@ -378,6 +390,15 @@ func primary() *Node {
 		}
 	}
 
+	if token.kind == TK_STR {
+		ty := arrayOf(byteType, uint(token.len))
+		v := newGVar(labeler.New(), ty)
+		v.Content = token.str
+		v.Len = token.len
+		token = token.next
+		return newVarNode(v)
+	}
+
 	// If not so, it should be a number
 	return newNodeNum(expectNumber())
 }
@@ -405,13 +426,18 @@ func definedArgs() []*Node {
 	return args
 }
 
-func newGVarNode(name string, ty *Type) *Node {
+func newVarNode(v *Var) *Node {
 	node := &Node{
 		Kind: ND_VAR,
-		Var:  newGVar(name, ty),
-		Type: ty,
+		Var:  v,
+		Type: v.Type,
 	}
 	return node
+}
+
+func newGVarNode(name string, ty *Type) *Node {
+	v := newGVar(name, ty)
+	return newVarNode(v)
 }
 
 func newGVar(name string, ty *Type) *Var {
@@ -424,12 +450,8 @@ func newGVar(name string, ty *Type) *Var {
 }
 
 func newLVarNode(name string, ty *Type) *Node {
-	node := &Node{
-		Kind: ND_VAR,
-		Var:  newLVar(name, ty),
-		Type: ty,
-	}
-	return node
+	v := newLVar(name, ty)
+	return newVarNode(v)
 }
 
 func newLVar(name string, ty *Type) *Var {

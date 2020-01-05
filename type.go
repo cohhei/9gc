@@ -59,6 +59,7 @@ func arrayOf(ty *Type, len uint) *Type {
 }
 
 var intType = &Type{Kind: TY_INT}
+var byteType = &Type{Kind: TY_BYTE}
 
 func (t *Type) isInt() bool {
 	return t.Kind == TY_INT

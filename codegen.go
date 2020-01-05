@@ -70,7 +70,16 @@ func emitData(code []*Node) {
 
 	for _, v := range globals {
 		fmt.Printf("%s:\n", v.Name)
-		fmt.Printf("  .zero %d\n", v.Type.size())
+
+		// Not string literals
+		if v.Len == 0 {
+			fmt.Printf("  .zero %d\n", v.Type.size())
+			continue
+		}
+		
+		for _, s := range v.Content {
+			fmt.Printf("  .byte %d\n", s)
+		}
 	}
 }
 

@@ -96,7 +96,7 @@ func TestParse(t *testing.T) {
 		{
 			desc:    "Global variable",
 			input:   "var i int",
-			globals: map[string]*Var{"i": {"i", intType, false, 0}},
+			globals: map[string]*Var{"i": {Name: "i", Type: intType}},
 		},
 	}
 	for _, tC := range testCases {
@@ -311,13 +311,13 @@ func TestStmt(t *testing.T) {
 }
 
 func lvarInt(s string) *Var {
-	return &Var{s, intType, true, 0}
+	return &Var{Name: s, Type: intType, IsLocal: true}
 }
 
 func lvarPointerInt(s string) *Var {
-	return &Var{s, &Type{TY_POINTER, intType, 0}, true, 0}
+	return &Var{Name: s, Type: &Type{TY_POINTER, intType, 0}, IsLocal: true}
 }
 
 func lvarPointerPoinsterInt(s string) *Var {
-	return &Var{s, arrayOf(arrayOf(intType, 2), 10), true, 0}
+	return &Var{Name: s, Type: arrayOf(arrayOf(intType, 2), 10), IsLocal: true}
 }

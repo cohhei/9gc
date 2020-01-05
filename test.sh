@@ -190,5 +190,9 @@ try 1 'var x [4]int; func main() { x[0]=0; x[1]=1; x[2]=2; x[3]=3; return x[1] }
 try 2 'var x [4]int; func main() { x[0]=0; x[1]=1; x[2]=2; x[3]=3; return x[2] }'
 try 3 'var x [4]int; func main() { x[0]=0; x[1]=1; x[2]=2; x[3]=3; return x[3] }'
 try 1 'func main() { var b byte; b = 1; return b }'
+try 97 'func main() { return "abc"[0] }'
+try 98 'func main() { return "abc"[1] }'
+try 99 'func main() { a := "abc"; return a[2] }'
+try 0 'func main() { return "abc"[3] }'
 
 echo OK
