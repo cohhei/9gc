@@ -138,6 +138,47 @@ func expectType() TypeKind {
 	return kind
 }
 
+var escapeCharactors = map[byte]byte{
+	'a':  '\a',
+	'b':  '\b',
+	't':  '\t',
+	'n':  '\n',
+	'v':  '\v',
+	'f':  '\f',
+	'r':  '\r',
+	'"':  '"',
+	'\\': '\\',
+}
+
+func getEscapeCharactor(c byte) byte {
+	v, ok := escapeCharactors[c]
+	if !ok {
+		panic(fmt.Sprintf("unknown escape sequence, '\\%s'", string(c)))
+	}
+	return v
+}
+
+func readStringLiteral(cur *Token, str string) (*Token, string) {
+	var content []byte
+	str = str[1:] // read the first double quotation
+	for i := 0; len(str) > i; i++ {
+		s := str[i]
+		if s == '"' {
+			cur = cur.newToken(TK_STR, string(content), len(content))
+			str = str[i+1:]
+			return cur, str
+		}
+		if s == '\\' {
+			c := getEscapeCharactor(str[i+1])
+			s = c
+			i++
+		}
+
+		content = append(content, s)
+	}
+	panic("string literal not terminated")
+}
+
 // tokenize tokenizes a string and returns it
 func tokenize(str string) error {
 	var head Token
@@ -152,18 +193,7 @@ func tokenize(str string) error {
 
 		// String literals
 		if str[0] == '"' {
-			var content string
-			for i, s := range str[1:] {
-				if s == '"' {
-					content = str[1 : i+1]
-					break
-				}
-			}
-			if len(content) == 0 {
-				panic("string literal not terminated")
-			}
-			cur = cur.newToken(TK_STR, content, len(content))
-			str = str[len(content)+2:]
+			cur, str = readStringLiteral(cur, str)
 			continue
 		}
 
